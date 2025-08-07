@@ -1,17 +1,13 @@
 [
-  {
-    "key": "ABC123",
-    "user": null,
-    "timestamp": null
-  },
-  {
-    "key": "DEF456",
-    "user": null,
-    "timestamp": null
-  },
-  {
-    "key": "Whoamidev",
-    "user": null,
-    "timestamp": null
-  }
+  { "key": "A1B2C3D4E5" },
+  { "key": "F6G7H8I9J0" },
+  { "key": "Q1W2E3R4T5" },
+  { "key": "Y6U7I8O9P0" },
+  { "key": "Z1X2C3V4B5" },
+  { "key": "N6M7L8K9J0" },
+  { "key": "H1G2F3D4S5" },
+  { "key": "A9S8D7F6G5" },
+  { "key": "Q0W9E8R7T6" },
+  { "key": "B1N2M3L4K5" },
+  { "key": "Whoamidev1819" }  // Developer key, tidak kadaluarsa & tidak terikat user
 ]
