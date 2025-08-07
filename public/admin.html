@@ -1,248 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WhoAmI Admin Panel</title>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #0c0c0c;
-      color: #fff;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    header {
-      width: 100%;
-      background: linear-gradient(90deg, #ff0000, #550000);
-      padding: 20px 0;
-      text-align: center;
-      box-shadow: 0 4px 20px red;
-    }
-    h1 {
-      margin: 0;
-      font-size: 32px;
-      color: #fff;
-      text-shadow: 0 0 10px red;
-    }
-    nav {
-      margin-top: 10px;
-    }
-    nav button {
-      margin: 0 5px;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      background-color: #222;
+      background-color: #0b0b0b;
+      font-family: 'Segoe UI', sans-serif;
       color: white;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    nav button.active,
-    nav button:hover {
-      background-color: #ff0000;
-      box-shadow: 0 0 10px red;
-    }
-    main {
-      width: 90%;
-      max-width: 1000px;
-      background-color: #1a1a1a;
-      margin-top: 20px;
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
-      display: none;
     }
-    main.active {
-      display: block;
-    }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      font-size: 14px;
-      border: none;
-      border-radius: 6px;
-    }
-    input {
-      background-color: #222;
-      color: white;
-      border: 1px solid #444;
-    }
-    button {
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .reset-btn {
-      background-color: #ff4c4c;
-      color: white;
-    }
-    .reset-btn:hover {
-      background-color: #ff0000;
-    }
-    .refresh-btn {
-      background-color: #ff0000;
-      color: white;
+    .neon-title {
+      font-size: 26px;
       font-weight: bold;
-      box-shadow: 0 0 10px red;
+      color: #f00;
+      text-shadow: 0 0 6px #f00, 0 0 10px #f00;
+      margin-bottom: 30px;
     }
-    .refresh-btn:hover {
-      background-color: #cc0000;
+    .section {
+      margin-top: 30px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #333;
-      text-align: center;
-    }
-    th {
+    .button {
+      padding: 10px 20px;
       background-color: #111;
-      color: #ff4c4c;
+      border: 1px solid red;
+      color: white;
+      cursor: pointer;
+      margin: 5px;
     }
-    td {
-      background-color: #1e1e1e;
+    table.dataTable {
+      color: white !important;
+      background-color: #111;
     }
-    footer {
-      margin-top: 40px;
-      color: #666;
-      font-size: 12px;
+    .dataTables_wrapper .dataTables_filter input {
+      background: #111;
+      color: white;
+      border: 1px solid #f00;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>WhoAmI Admin Panel</h1>
-    <nav>
-      <button onclick="switchTab('keys')" class="active">🔑 Keys</button>
-      <button onclick="switchTab('logs')">📜 Logs</button>
-      <button onclick="switchTab('generator')">➕ Generate Key</button>
-    </nav>
-  </header>
+  <div class="neon-title">WhoAmI Admin Panel</div>
 
-  <main id="keys" class="active">
-    <input type="password" id="password" placeholder="Admin Password" />
-    <button onclick="fetchKeys()" class="refresh-btn">🔍 View All Keys</button>
-    <table id="keyTable">
+  <div class="section">
+    <h3>🔑 Generate Key</h3>
+    <button class="button" onclick="generateKey()">+ Generate Random Key</button>
+    <div id="generatedKeys" style="margin-top: 10px;"></div>
+  </div>
+
+  <div class="section">
+    <h3>📜 Riwayat Penggunaan (Logs)</h3>
+    <table id="logTable" class="display" style="width:100%">
       <thead>
         <tr>
+          <th>Waktu</th>
+          <th>Aksi</th>
           <th>Key</th>
-          <th>User</th>
-          <th>Days Left</th>
-          <th>Action</th>
+          <th>Pengguna</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-  </main>
+  </div>
 
-  <main id="logs">
-    <input type="password" id="logPassword" placeholder="Admin Password" />
-    <button onclick="fetchLogs()" class="refresh-btn">📄 Load Logs</button>
-    <table id="logTable">
-      <thead>
-        <tr>
-          <th>Key</th>
-          <th>User</th>
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </main>
-
-  <main id="generator">
-    <input type="password" id="genPassword" placeholder="Admin Password" />
-    <input type="number" id="genAmount" placeholder="Amount (1-20)" min="1" max="20" />
-    <button onclick="generateKeys()" class="refresh-btn">⚙️ Generate Keys</button>
-    <pre id="generatedKeys"></pre>
-  </main>
-
-  <footer>
-    &copy; 2025 WhoAmI Security System - Admin Access Only
-  </footer>
-
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script>
-    function switchTab(tab) {
-      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('main').forEach(m => m.classList.remove('active'));
-      document.querySelector(`#${tab}`).classList.add('active');
-      event.target.classList.add('active');
+    function formatDate(unix) {
+      const date = new Date(unix * 1000);
+      return date.toLocaleString();
     }
 
-    async function fetchKeys() {
-      const pwd = document.getElementById('password').value;
-      const res = await fetch(`/api/admin?password=${pwd}`);
-      const data = await res.json();
-      const tbody = document.querySelector("#keyTable tbody");
-      tbody.innerHTML = "";
+    function generateKey() {
+      fetch('/api/generateKeys', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById('generatedKeys');
+          if (data.keys && data.keys.length > 0) {
+            const html = '<strong>Key baru:</strong><br>' + data.keys.map(k => `<code>${k}</code>`).join('<br>');
+            container.innerHTML = html;
+          } else {
+            container.innerHTML = '<span style="color:red;">Gagal membuat key.</span>';
+          }
+        })
+        .catch(err => {
+          document.getElementById('generatedKeys').innerHTML = 'Terjadi kesalahan: ' + err;
+        });
+    }
 
-      if (data.error) {
-        alert("Error: " + data.error);
-        return;
-      }
+    function loadLogTable() {
+      fetch('/data/logs.json')
+        .then(res => res.json())
+        .then(data => {
+          const table = $('#logTable').DataTable();
+          table.clear();
+          const logs = (data.logs || []).sort((a, b) => b.timestamp - a.timestamp);
+          logs.forEach(log => {
+            const row = [
+              formatDate(log.timestamp),
+              log.action.toUpperCase(),
+              log.key || '-',
+              log.user || log.by || '-'
+            ];
+            table.row.add(row);
+          });
+          table.draw();
+        });
+    }
 
-      data.keys.forEach(k => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${k.key}</td>
-          <td>${k.user || '-'}</td>
-          <td>${k.days_left !== null ? k.days_left : '-'}</td>
-          <td><button class="reset-btn" onclick="resetKey('${k.key}')">Reset</button></td>
-        `;
-        tbody.appendChild(tr);
+    $(document).ready(function() {
+      $('#logTable').DataTable({
+        paging: true,
+        searching: true,
+        ordering: true,
+        order: [[0, 'desc']]
       });
-    }
-
-    async function resetKey(key) {
-      const pwd = document.getElementById('password').value;
-      const res = await fetch(`/api/resetKey?key=${key}&password=${pwd}`);
-      const data = await res.json();
-      if (data.success) {
-        alert(data.message);
-        fetchKeys();
-      } else {
-        alert("Error: " + data.error);
-      }
-    }
-
-    async function fetchLogs() {
-      const pwd = document.getElementById('logPassword').value;
-      const res = await fetch(`/api/logs?password=${pwd}`);
-      const data = await res.json();
-      const tbody = document.querySelector("#logTable tbody");
-      tbody.innerHTML = "";
-      if (data.error) {
-        alert("Error: " + data.error);
-        return;
-      }
-      data.logs.forEach(log => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${log.key}</td>
-          <td>${log.user}</td>
-          <td>${new Date(log.timestamp * 1000).toLocaleString()}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function generateKeys() {
-      const pwd = document.getElementById('genPassword').value;
-      const amount = document.getElementById('genAmount').value;
-      const res = await fetch(`/api/generateKeys?amount=${amount}&password=${pwd}`);
-      const data = await res.json();
-      if (data.error) {
-        alert("Error: " + data.error);
-        return;
-      }
-      document.getElementById("generatedKeys").textContent = data.keys.join("\n");
-    }
+      loadLogTable();
+    });
   </script>
 </body>
 </html>
