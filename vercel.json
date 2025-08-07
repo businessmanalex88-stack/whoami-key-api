@@ -1,5 +1,0 @@
-{
-  "version": 2,
-  "builds": [{ "src": "api/verifyKey.js", "use": "@vercel/node" }],
-  "routes": [{ "src": "/verifyKey", "dest": "/api/verifyKey.js" }]
-}
