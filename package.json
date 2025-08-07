@@ -1,3 +1,5 @@
 {
-  "type": "module"
+  "name": "whoami-key-api",
+  "type": "module",
+  "dependencies": {}
 }
