@@ -1,41 +1,42 @@
+// File: api/verifyKey.js
+
 const fs = require('fs');
 const path = require('path');
 
-const FILE = path.join(__dirname, '../keys.json');
-const DURATION = 7 * 24 * 60 * 60 * 1000; // 7 hari dalam ms
+const keysFile = path.resolve('./data/keys.json');
+const logsFile = path.resolve('./data/logs.json');
 
-module.exports = async (req, res) => {
+module.exports = (req, res) => {
   const { key, user } = req.query;
-  if (!key || !user) return res.status(400).json({ valid: false, error: 'Missing key or user' });
+  if (!key || !user) return res.status(400).json({ error: 'Missing key or user' });
 
-  let keys = {};
-  try {
-    keys = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-  } catch {
-    return res.status(500).json({ valid: false, error: 'Key store error' });
-  }
-  if (!keys[key]) return res.json({ valid: false, error: 'Key not found' });
-  if (key === "Whoamidev") return res.json({ valid: true, expired: false, developer: true, days_left: "unlimited" });
+  const keys = JSON.parse(fs.readFileSync(keysFile, 'utf8'));
+  const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
 
-  const now = Date.now();
-  const info = keys[key];
+  const entry = keys.find(k => k.key === key);
 
-  if (!info.bound_to) {
-    keys[key].bound_to = user;
-    keys[key].activated = now;
-    fs.writeFileSync(FILE, JSON.stringify(keys, null, 2));
-    return res.json({ valid: true, expired: false, developer: false, days_left: 7 });
+  if (!entry) return res.json({ valid: false, error: 'Invalid key' });
+
+  if (entry.key === 'Whoamidev') {
+    return res.json({ valid: true, expired: false });
   }
 
-  if (info.bound_to !== user) {
-    return res.json({ valid: false, error: 'Key already used by another user' });
+  const now = Math.floor(Date.now() / 1000);
+
+  if (!entry.user) {
+    entry.user = user;
+    entry.timestamp = now;
   }
 
-  const elapsed = now - info.activated;
-  if (elapsed > DURATION) {
-    return res.json({ valid: true, expired: true, developer: false, days_left: 0 });
-  }
+  if (entry.user !== user) return res.json({ valid: false, error: 'Key already used by another user' });
 
-  const daysLeft = Math.floor((DURATION - elapsed) / (1000 * 60 * 60 * 24));
-  return res.json({ valid: true, expired: false, developer: false, days_left: daysLeft });
+  const expiresIn = 7 * 24 * 60 * 60;
+  const expired = now - entry.timestamp > expiresIn;
+
+  fs.writeFileSync(keysFile, JSON.stringify(keys, null, 2));
+
+  logs.logs.push({ key, user, timestamp: now });
+  fs.writeFileSync(logsFile, JSON.stringify(logs, null, 2));
+
+  res.json({ valid: true, expired });
 };
