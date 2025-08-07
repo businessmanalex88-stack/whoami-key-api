@@ -1,10 +1,15 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const keysFile = path.resolve('./data/keys.json');
-const logsFile = path.resolve('./data/logs.json');
+// Agar bisa pakai __dirname di ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-module.exports = (req, res) => {
+const keysFile = path.resolve(__dirname, '../data/keys.json');
+const logsFile = path.resolve(__dirname, '../data/logs.json');
+
+export default function handler(req, res) {
   const { key, user } = req.query;
   if (!key || !user) return res.status(400).json({ error: 'Missing key or user' });
 
@@ -12,9 +17,10 @@ module.exports = (req, res) => {
   const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
 
   const entry = keys.find(k => k.key === key);
+
   if (!entry) return res.json({ valid: false, error: 'Invalid key' });
 
-  if (entry.key === 'Whoamidev1819') {
+  if (entry.key === 'Whoamidev') {
     return res.json({ valid: true, expired: false, developer: true });
   }
 
@@ -34,10 +40,5 @@ module.exports = (req, res) => {
   logs.logs.push({ key, user, timestamp: now });
   fs.writeFileSync(logsFile, JSON.stringify(logs, null, 2));
 
-  res.json({
-    valid: true,
-    expired,
-    developer: false,
-    days_left: Math.max(0, Math.floor((expiresIn - (now - entry.timestamp)) / 86400))
-  });
-};
+  res.json({ valid: true, expired, developer: false, days_left: Math.max(0, Math.floor((expiresIn - (now - entry.timestamp)) / 86400)) });
+}
