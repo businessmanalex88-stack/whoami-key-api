@@ -14,7 +14,7 @@
       text-align: center;
       color: #333;
     }
-    input[type="password"], button {
+    input, button, select {
       padding: 10px;
       font-size: 1rem;
       margin: 10px 0;
@@ -34,8 +34,11 @@
       background: #333;
       color: white;
     }
-    #admin-panel {
+    .hidden {
       display: none;
+    }
+    nav button {
+      margin-right: 10px;
     }
   </style>
 </head>
@@ -48,35 +51,67 @@
     <p id="error" style="color: red;"></p>
   </div>
 
-  <div id="admin-panel">
-    <h2>Key List</h2>
-    <table id="key-table">
-      <thead>
-        <tr>
-          <th>Key</th>
-          <th>User</th>
-          <th>Created</th>
-          <th>Days Left</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <div id="admin-interface" class="hidden">
+    <nav>
+      <button onclick="showSection('keys')">View Keys</button>
+      <button onclick="showSection('reset')">Reset Key</button>
+      <button onclick="showSection('logs')">View Logs</button>
+    </nav>
+
+    <section id="keys-section">
+      <h2>Key List</h2>
+      <table id="key-table">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>User</th>
+            <th>Created</th>
+            <th>Days Left</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section id="reset-section" class="hidden">
+      <h2>Reset Key</h2>
+      <input type="text" id="reset-key" placeholder="Enter Key to Reset" />
+      <button onclick="resetKey()">Reset</button>
+      <p id="reset-result"></p>
+    </section>
+
+    <section id="logs-section" class="hidden">
+      <h2>Key Usage Logs</h2>
+      <table id="log-table">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>User</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
   </div>
 
   <script>
-    const apiURL = '/api/admin'; // Vercel automatically binds domain
+    const passwordField = document.getElementById('admin-pass');
+    const errorText = document.getElementById('error');
 
     async function login() {
-      const pass = document.getElementById('admin-pass').value;
-      const res = await fetch(`${apiURL}?password=${pass}`);
-      if (res.status !== 200) {
-        document.getElementById('error').textContent = 'Wrong password or error.';
+      const pass = passwordField.value;
+      const res = await fetch(`/api/admin?password=${pass}`);
+      if (!res.ok) {
+        errorText.textContent = 'Wrong password or server error.';
         return;
       }
       const data = await res.json();
-      document.getElementById('login-section').style.display = 'none';
-      document.getElementById('admin-panel').style.display = 'block';
+      errorText.textContent = '';
+      document.getElementById('login-section').classList.add('hidden');
+      document.getElementById('admin-interface').classList.remove('hidden');
       renderTable(data);
+      passwordField.dataset.pass = pass;
     }
 
     function renderTable(keys) {
@@ -87,8 +122,45 @@
         row.innerHTML = `
           <td>${k.key}</td>
           <td>${k.user || '-'}</td>
-          <td>${new Date(k.timestamp * 1000).toLocaleDateString() || '-'}</td>
+          <td>${k.timestamp ? new Date(k.timestamp * 1000).toLocaleDateString() : '-'}</td>
           <td>${k.daysLeft ?? '-'}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function resetKey() {
+      const key = document.getElementById('reset-key').value;
+      const pass = passwordField.dataset.pass;
+      const result = document.getElementById('reset-result');
+      const res = await fetch(`/api/resetKey?key=${key}&password=${pass}`);
+      const data = await res.json();
+      if (data.success) {
+        result.textContent = `Key ${key} reset successfully.`;
+      } else {
+        result.textContent = `Error: ${data.error}`;
+      }
+    }
+
+    async function showSection(id) {
+      document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+      document.getElementById(`${id}-section`).classList.remove('hidden');
+      if (id === 'logs') loadLogs();
+    }
+
+    async function loadLogs() {
+      const pass = passwordField.dataset.pass;
+      const res = await fetch(`/api/logs?password=${pass}`);
+      if (!res.ok) return;
+      const logs = await res.json();
+      const tbody = document.querySelector('#log-table tbody');
+      tbody.innerHTML = '';
+      logs.forEach(log => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${log.key}</td>
+          <td>${log.user}</td>
+          <td>${new Date(log.timestamp * 1000).toLocaleString()}</td>
         `;
         tbody.appendChild(row);
       });
