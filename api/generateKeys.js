@@ -1,50 +1,30 @@
-const fs = require('fs');
-const path = require('path');
-
-const keysPath = path.resolve('./data/keys.json');
-
-// Fungsi untuk membuat 1 key acak (10 karakter huruf kapital + angka)
-function generateKey() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let key = '';
-  for (let i = 0; i < 10; i++) {
-    key += chars.charAt(Math.floor(Math.random() * chars.length));
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: "Method not allowed. Use POST." });
   }
-  return key;
+
+  const { password, amount } = req.body;
+
+  // Ganti dengan password admin milikmu
+  const ADMIN_PASSWORD = "Whoamidev1819";
+
+  if (!password || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "Unauthorized access." });
+  }
+
+  const count = Math.min(Math.max(parseInt(amount), 1), 20); // Batasi antara 1 - 20
+
+  const keys = Array.from({ length: count }, () => generateKey());
+
+  return res.status(200).json({ keys });
 }
 
-module.exports = (req, res) => {
-  const { amount, password } = req.query;
-
-  // Validasi password admin
-  if (password !== 'Whoamidev1819') {
-    return res.status(403).json({ success: false, error: 'Invalid admin password' });
+// Fungsi untuk generate key acak
+function generateKey() {
+  const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  let result = "";
+  for (let i = 0; i < 20; i++) {
+    result += charset.charAt(Math.floor(Math.random() * charset.length));
   }
-
-  const total = parseInt(amount);
-  if (isNaN(total) || total <= 0) {
-    return res.status(400).json({ success: false, error: 'Invalid amount' });
-  }
-
-  try {
-    const existing = JSON.parse(fs.readFileSync(keysPath, 'utf8'));
-
-    const newKeys = [];
-    for (let i = 0; i < total; i++) {
-      const key = generateKey();
-      newKeys.push({ key, user: null, timestamp: null });
-    }
-
-    const allKeys = existing.concat(newKeys);
-    fs.writeFileSync(keysPath, JSON.stringify(allKeys, null, 2));
-
-    res.json({
-      success: true,
-      message: `${newKeys.length} key(s) generated`,
-      keys: newKeys.map(k => k.key),
-    });
-  } catch (err) {
-    console.error('Error generating keys:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-};
+  return result;
+}
