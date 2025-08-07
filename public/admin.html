@@ -28,14 +28,36 @@
       color: #fff;
       text-shadow: 0 0 10px red;
     }
+    nav {
+      margin-top: 10px;
+    }
+    nav button {
+      margin: 0 5px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background-color: #222;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    nav button.active,
+    nav button:hover {
+      background-color: #ff0000;
+      box-shadow: 0 0 10px red;
+    }
     main {
       width: 90%;
       max-width: 1000px;
       background-color: #1a1a1a;
-      margin-top: 30px;
+      margin-top: 20px;
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+      display: none;
+    }
+    main.active {
+      display: block;
     }
     input, button {
       padding: 10px;
@@ -96,8 +118,14 @@
 <body>
   <header>
     <h1>WhoAmI Admin Panel</h1>
+    <nav>
+      <button onclick="switchTab('keys')" class="active">🔑 Keys</button>
+      <button onclick="switchTab('logs')">📜 Logs</button>
+      <button onclick="switchTab('generator')">➕ Generate Key</button>
+    </nav>
   </header>
-  <main>
+
+  <main id="keys" class="active">
     <input type="password" id="password" placeholder="Admin Password" />
     <button onclick="fetchKeys()" class="refresh-btn">🔍 View All Keys</button>
     <table id="keyTable">
@@ -112,11 +140,41 @@
       <tbody></tbody>
     </table>
   </main>
+
+  <main id="logs">
+    <input type="password" id="logPassword" placeholder="Admin Password" />
+    <button onclick="fetchLogs()" class="refresh-btn">📄 Load Logs</button>
+    <table id="logTable">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>User</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+
+  <main id="generator">
+    <input type="password" id="genPassword" placeholder="Admin Password" />
+    <input type="number" id="genAmount" placeholder="Amount (1-20)" min="1" max="20" />
+    <button onclick="generateKeys()" class="refresh-btn">⚙️ Generate Keys</button>
+    <pre id="generatedKeys"></pre>
+  </main>
+
   <footer>
     &copy; 2025 WhoAmI Security System - Admin Access Only
   </footer>
 
   <script>
+    function switchTab(tab) {
+      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('main').forEach(m => m.classList.remove('active'));
+      document.querySelector(`#${tab}`).classList.add('active');
+      event.target.classList.add('active');
+    }
+
     async function fetchKeys() {
       const pwd = document.getElementById('password').value;
       const res = await fetch(`/api/admin?password=${pwd}`);
@@ -151,6 +209,39 @@
       } else {
         alert("Error: " + data.error);
       }
+    }
+
+    async function fetchLogs() {
+      const pwd = document.getElementById('logPassword').value;
+      const res = await fetch(`/api/logs?password=${pwd}`);
+      const data = await res.json();
+      const tbody = document.querySelector("#logTable tbody");
+      tbody.innerHTML = "";
+      if (data.error) {
+        alert("Error: " + data.error);
+        return;
+      }
+      data.logs.forEach(log => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${log.key}</td>
+          <td>${log.user}</td>
+          <td>${new Date(log.timestamp * 1000).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function generateKeys() {
+      const pwd = document.getElementById('genPassword').value;
+      const amount = document.getElementById('genAmount').value;
+      const res = await fetch(`/api/generateKeys?amount=${amount}&password=${pwd}`);
+      const data = await res.json();
+      if (data.error) {
+        alert("Error: " + data.error);
+        return;
+      }
+      document.getElementById("generatedKeys").textContent = data.keys.join("\n");
     }
   </script>
 </body>
