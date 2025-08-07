@@ -25,8 +25,16 @@
     h1 {
       margin: 0;
       font-size: 32px;
-      color: #fff;
-      text-shadow: 0 0 10px red;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .gif-glow {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      box-shadow: 0 0 10px red, 0 0 20px red, 0 0 30px red;
     }
     nav {
       margin-top: 10px;
@@ -138,7 +146,10 @@
 </head>
 <body>
   <header>
-    <h1>WhoAmI Admin Panel</h1>
+    <h1>
+      <span>WhoAmI Admin Panel</span>
+      <img src="https://media.giphy.com/media/hJXPF4s7yoaQ1McAEK/giphy.gif" alt="Admin GIF" class="gif-glow" />
+    </h1>
     <nav>
       <button onclick="switchTab('keys')" class="active">🔑 Keys</button>
       <button onclick="switchTab('logs')">📜 Logs</button>
@@ -215,10 +226,7 @@
           <td>${k.key}</td>
           <td>${k.user || '-'}</td>
           <td>${k.days_left !== null ? k.days_left : '-'}</td>
-          <td>
-            <button class="reset-btn" onclick="resetKey('${k.key}')">Reset</button>
-            <button class="reset-btn" onclick="deleteKey('${k.key}')">🗑️ Delete</button>
-          </td>
+          <td><button class="reset-btn" onclick="resetKey('${k.key}')">Reset</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -233,38 +241,6 @@
         fetchKeys();
       } else {
         alert("Error: " + data.error);
-      }
-    }
-
-    async function deleteKey(key) {
-      const pwd = document.getElementById('password').value || document.getElementById('genPassword').value;
-      if (!confirm(`Are you sure you want to permanently delete key: ${key}?`)) return;
-
-      try {
-        const res = await fetch(`/api/deleteKey`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key, password: pwd })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          alert(data.message || "Key deleted!");
-          const rows = document.querySelectorAll("#keyTable tbody tr");
-          for (let row of rows) {
-            const rowKey = row.querySelector("td")?.textContent?.trim();
-            if (rowKey === key) {
-              row.remove();
-              break;
-            }
-          }
-        } else {
-          alert("Error: " + (data.error || "Unknown error"));
-        }
-      } catch (err) {
-        alert("Failed to delete key.");
-        console.error(err);
       }
     }
 
@@ -313,7 +289,6 @@
 
         output.textContent = data.keys.join("\n");
 
-        // Replace key table, but preserve whoamidev1819
         const tbody = document.querySelector("#keyTable tbody");
         const rows = Array.from(tbody.querySelectorAll("tr"));
         rows.forEach(row => {
@@ -329,10 +304,7 @@
             <td>${k}</td>
             <td>-</td>
             <td>-</td>
-            <td>
-              <button class="reset-btn" onclick="resetKey('${k}')">Reset</button>
-              <button class="reset-btn" onclick="deleteKey('${k}')">🗑️ Delete</button>
-            </td>
+            <td><button class="reset-btn" onclick="resetKey('${k}')">Reset</button></td>
           `;
           tbody.appendChild(tr);
         });
