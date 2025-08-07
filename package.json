@@ -1,10 +1,4 @@
 {
   "name": "whoami-key-api",
-  "version": "1.0.0",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "start": "node api/verifyKey.js"
-  },
-  "dependencies": {}
+  "version": "1.0.0"
 }
