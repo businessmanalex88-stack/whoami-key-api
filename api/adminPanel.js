@@ -1,15 +1,14 @@
-const fs = require('fs');
-const path = require('path');
+hereimport fs from 'fs';
+import path from 'path';
 
 const logsFile = path.resolve('./data/logs.json');
 const keysFile = path.resolve('./data/keys.json');
 
-module.exports = (req, res) => {
+export default function handler(req, res) {
   const { adminpass, resetkey } = req.query;
 
   res.setHeader('Content-Type', 'text/html');
 
-  // Simple CSS
   const style = `
     <style>
       body { font-family: Arial, sans-serif; background: #121212; color: #eee; padding: 30px; }
@@ -23,11 +22,7 @@ module.exports = (req, res) => {
         color: white;
         border-radius: 5px;
       }
-      button {
-        background: #00bcd4;
-        border: none;
-        cursor: pointer;
-      }
+      button { background: #00bcd4; border: none; cursor: pointer; }
       button:hover { background: #0097a7; }
       table {
         margin-top: 20px;
@@ -45,7 +40,6 @@ module.exports = (req, res) => {
     </style>
   `;
 
-  // If password not entered
   if (adminpass !== 'superadmin') {
     return res.end(`
       <!DOCTYPE html><html><head><title>Admin Panel</title>${style}</head><body>
@@ -58,12 +52,9 @@ module.exports = (req, res) => {
     `);
   }
 
-  let html = `
-    <!DOCTYPE html><html><head><title>Admin Panel</title>${style}</head><body>
-    <h2>✅ Admin Panel</h2>
-  `;
+  let html = `<!DOCTYPE html><html><head><title>Admin Panel</title>${style}</head><body>
+    <h2>✅ Admin Panel</h2>`;
 
-  // Reset key if triggered
   if (resetkey) {
     const keys = JSON.parse(fs.readFileSync(keysFile, 'utf8'));
     const entry = keys.find(k => k.key === resetkey);
@@ -77,10 +68,9 @@ module.exports = (req, res) => {
     }
   }
 
-  // Logs
   const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
-  html += `<p>Total logs: ${logs.logs.length}</p>`;
-  html += `<table><tr><th>Key</th><th>User</th><th>Timestamp</th></tr>`;
+  html += `<p>Total logs: ${logs.logs.length}</p>
+    <table><tr><th>Key</th><th>User</th><th>Timestamp</th></tr>`;
   for (let i = logs.logs.length - 1; i >= 0; i--) {
     const log = logs.logs[i];
     const ts = new Date(log.timestamp * 1000).toLocaleString();
@@ -88,16 +78,14 @@ module.exports = (req, res) => {
   }
   html += `</table>`;
 
-  // Reset form
   html += `
     <h3>🔁 Reset a Key</h3>
     <form method="GET">
       <input type="hidden" name="adminpass" value="${adminpass}" />
       <input type="text" name="resetkey" placeholder="Enter key to reset" required />
       <button type="submit">Reset Key</button>
-    </form>
-  `;
+    </form>`;
 
   html += `</body></html>`;
   res.end(html);
-};
+}
