@@ -215,14 +215,17 @@
           <td>${k.key}</td>
           <td>${k.user || '-'}</td>
           <td>${k.days_left !== null ? k.days_left : '-'}</td>
-          <td><button class="reset-btn" onclick="resetKey('${k.key}')">Reset</button></td>
+          <td>
+            <button class="reset-btn" onclick="resetKey('${k.key}')">Reset</button>
+            <button class="reset-btn" onclick="deleteKey('${k.key}')">🗑️ Delete</button>
+          </td>
         `;
         tbody.appendChild(tr);
       });
     }
 
     async function resetKey(key) {
-      const pwd = document.getElementById('password').value;
+      const pwd = document.getElementById('password').value || document.getElementById('genPassword').value;
       const res = await fetch(`/api/resetKey?key=${key}&password=${pwd}`);
       const data = await res.json();
       if (data.success) {
@@ -230,6 +233,36 @@
         fetchKeys();
       } else {
         alert("Error: " + data.error);
+      }
+    }
+
+    async function deleteKey(key) {
+      const pwd = document.getElementById('password').value || document.getElementById('genPassword').value;
+      if (!confirm(`Are you sure you want to permanently delete key: ${key}?`)) return;
+
+      try {
+        const res = await fetch(`/api/deleteKey`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key, password: pwd })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          alert(data.message || "Key deleted!");
+          const rows = document.querySelectorAll("#keyTable tbody tr");
+          rows.forEach(row => {
+            if (row.children[0].textContent === key) {
+              row.remove();
+            }
+          });
+        } else {
+          alert("Error: " + (data.error || "Unknown error"));
+        }
+      } catch (err) {
+        alert("Failed to delete key.");
+        console.error(err);
       }
     }
 
@@ -277,6 +310,22 @@
         }
 
         output.textContent = data.keys.join("\n");
+
+        // Tambahkan ke tabel Keys secara langsung
+        const tbody = document.querySelector("#keyTable tbody");
+        data.keys.forEach(k => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${k}</td>
+            <td>-</td>
+            <td>-</td>
+            <td>
+              <button class="reset-btn" onclick="resetKey('${k}')">Reset</button>
+              <button class="reset-btn" onclick="deleteKey('${k}')">🗑️ Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
       } catch (err) {
         output.textContent = "";
         alert("Failed to generate keys. Please try again.");
