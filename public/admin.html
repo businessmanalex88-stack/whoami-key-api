@@ -3,167 +3,154 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Whoami Key Admin Panel</title>
+  <title>WhoAmI Admin Panel</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0c0c0c;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      width: 100%;
+      background: linear-gradient(90deg, #ff0000, #550000);
+      padding: 20px 0;
+      text-align: center;
+      box-shadow: 0 4px 20px red;
     }
     h1 {
-      text-align: center;
-      color: #333;
+      margin: 0;
+      font-size: 32px;
+      color: #fff;
+      text-shadow: 0 0 10px red;
     }
-    input, button, select {
+    main {
+      width: 90%;
+      max-width: 1000px;
+      background-color: #1a1a1a;
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+    }
+    input, button {
       padding: 10px;
-      font-size: 1rem;
-      margin: 10px 0;
+      margin: 5px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+    }
+    input {
+      background-color: #222;
+      color: white;
+      border: 1px solid #444;
+    }
+    button {
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .reset-btn {
+      background-color: #ff4c4c;
+      color: white;
+    }
+    .reset-btn:hover {
+      background-color: #ff0000;
+    }
+    .refresh-btn {
+      background-color: #ff0000;
+      color: white;
+      font-weight: bold;
+      box-shadow: 0 0 10px red;
+    }
+    .refresh-btn:hover {
+      background-color: #cc0000;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
-      background: white;
     }
     th, td {
       padding: 10px;
-      border: 1px solid #ddd;
+      border: 1px solid #333;
       text-align: center;
     }
     th {
-      background: #333;
-      color: white;
+      background-color: #111;
+      color: #ff4c4c;
     }
-    .hidden {
-      display: none;
+    td {
+      background-color: #1e1e1e;
     }
-    nav button {
-      margin-right: 10px;
+    footer {
+      margin-top: 40px;
+      color: #666;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
-  <h1>Whoami Key Admin Panel</h1>
-
-  <div id="login-section">
-    <input type="password" id="admin-pass" placeholder="Enter Admin Password" />
-    <button onclick="login()">Login</button>
-    <p id="error" style="color: red;"></p>
-  </div>
-
-  <div id="admin-interface" class="hidden">
-    <nav>
-      <button onclick="showSection('keys')">View Keys</button>
-      <button onclick="showSection('reset')">Reset Key</button>
-      <button onclick="showSection('logs')">View Logs</button>
-    </nav>
-
-    <section id="keys-section">
-      <h2>Key List</h2>
-      <table id="key-table">
-        <thead>
-          <tr>
-            <th>Key</th>
-            <th>User</th>
-            <th>Created</th>
-            <th>Days Left</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <section id="reset-section" class="hidden">
-      <h2>Reset Key</h2>
-      <input type="text" id="reset-key" placeholder="Enter Key to Reset" />
-      <button onclick="resetKey()">Reset</button>
-      <p id="reset-result"></p>
-    </section>
-
-    <section id="logs-section" class="hidden">
-      <h2>Key Usage Logs</h2>
-      <table id="log-table">
-        <thead>
-          <tr>
-            <th>Key</th>
-            <th>User</th>
-            <th>Timestamp</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </div>
+  <header>
+    <h1>WhoAmI Admin Panel</h1>
+  </header>
+  <main>
+    <input type="password" id="password" placeholder="Admin Password" />
+    <button onclick="fetchKeys()" class="refresh-btn">🔍 View All Keys</button>
+    <table id="keyTable">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>User</th>
+          <th>Days Left</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+  <footer>
+    &copy; 2025 WhoAmI Security System - Admin Access Only
+  </footer>
 
   <script>
-    const passwordField = document.getElementById('admin-pass');
-    const errorText = document.getElementById('error');
+    async function fetchKeys() {
+      const pwd = document.getElementById('password').value;
+      const res = await fetch(`/api/admin?password=${pwd}`);
+      const data = await res.json();
+      const tbody = document.querySelector("#keyTable tbody");
+      tbody.innerHTML = "";
 
-    async function login() {
-      const pass = passwordField.value;
-      const res = await fetch(`/api/admin?password=${pass}`);
-      if (!res.ok) {
-        errorText.textContent = 'Wrong password or server error.';
+      if (data.error) {
+        alert("Error: " + data.error);
         return;
       }
-      const data = await res.json();
-      errorText.textContent = '';
-      document.getElementById('login-section').classList.add('hidden');
-      document.getElementById('admin-interface').classList.remove('hidden');
-      renderTable(data);
-      passwordField.dataset.pass = pass;
-    }
 
-    function renderTable(keys) {
-      const tbody = document.querySelector('#key-table tbody');
-      tbody.innerHTML = '';
-      keys.forEach(k => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
+      data.keys.forEach(k => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
           <td>${k.key}</td>
           <td>${k.user || '-'}</td>
-          <td>${k.timestamp ? new Date(k.timestamp * 1000).toLocaleDateString() : '-'}</td>
-          <td>${k.daysLeft ?? '-'}</td>
+          <td>${k.days_left !== null ? k.days_left : '-'}</td>
+          <td><button class="reset-btn" onclick="resetKey('${k.key}')">Reset</button></td>
         `;
-        tbody.appendChild(row);
+        tbody.appendChild(tr);
       });
     }
 
-    async function resetKey() {
-      const key = document.getElementById('reset-key').value;
-      const pass = passwordField.dataset.pass;
-      const result = document.getElementById('reset-result');
-      const res = await fetch(`/api/resetKey?key=${key}&password=${pass}`);
+    async function resetKey(key) {
+      const pwd = document.getElementById('password').value;
+      const res = await fetch(`/api/resetKey?key=${key}&password=${pwd}`);
       const data = await res.json();
       if (data.success) {
-        result.textContent = `Key ${key} reset successfully.`;
+        alert(data.message);
+        fetchKeys();
       } else {
-        result.textContent = `Error: ${data.error}`;
+        alert("Error: " + data.error);
       }
-    }
-
-    async function showSection(id) {
-      document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-      document.getElementById(`${id}-section`).classList.remove('hidden');
-      if (id === 'logs') loadLogs();
-    }
-
-    async function loadLogs() {
-      const pass = passwordField.dataset.pass;
-      const res = await fetch(`/api/logs?password=${pass}`);
-      if (!res.ok) return;
-      const logs = await res.json();
-      const tbody = document.querySelector('#log-table tbody');
-      tbody.innerHTML = '';
-      logs.forEach(log => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${log.key}</td>
-          <td>${log.user}</td>
-          <td>${new Date(log.timestamp * 1000).toLocaleString()}</td>
-        `;
-        tbody.appendChild(row);
-      });
     }
   </script>
 </body>
