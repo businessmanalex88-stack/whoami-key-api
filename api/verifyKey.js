@@ -1,12 +1,12 @@
 // File: api/verifyKey.js
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const keysFile = path.resolve('./data/keys.json');
 const logsFile = path.resolve('./data/logs.json');
 
-module.exports = (req, res) => {
+export default function handler(req, res) {
   const { key, user } = req.query;
   if (!key || !user) return res.status(400).json({ error: 'Missing key or user' });
 
@@ -38,5 +38,10 @@ module.exports = (req, res) => {
   logs.logs.push({ key, user, timestamp: now });
   fs.writeFileSync(logsFile, JSON.stringify(logs, null, 2));
 
-  res.json({ valid: true, expired, developer: false, days_left: Math.max(0, Math.floor((expiresIn - (now - entry.timestamp)) / 86400)) });
-};
+  res.json({
+    valid: true,
+    expired,
+    developer: false,
+    days_left: Math.max(0, Math.floor((expiresIn - (now - entry.timestamp)) / 86400)),
+  });
+}
