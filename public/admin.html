@@ -252,11 +252,13 @@
         if (data.success) {
           alert(data.message || "Key deleted!");
           const rows = document.querySelectorAll("#keyTable tbody tr");
-          rows.forEach(row => {
-            if (row.children[0].textContent === key) {
+          for (let row of rows) {
+            const rowKey = row.querySelector("td")?.textContent?.trim();
+            if (rowKey === key) {
               row.remove();
+              break;
             }
-          });
+          }
         } else {
           alert("Error: " + (data.error || "Unknown error"));
         }
@@ -311,8 +313,16 @@
 
         output.textContent = data.keys.join("\n");
 
-        // Tambahkan ke tabel Keys secara langsung
+        // Replace key table, but preserve whoamidev1819
         const tbody = document.querySelector("#keyTable tbody");
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        rows.forEach(row => {
+          const key = row.children[0].textContent.trim();
+          if (key !== "whoamidev1819") {
+            row.remove();
+          }
+        });
+
         data.keys.forEach(k => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
@@ -326,6 +336,7 @@
           `;
           tbody.appendChild(tr);
         });
+
       } catch (err) {
         output.textContent = "";
         alert("Failed to generate keys. Please try again.");
