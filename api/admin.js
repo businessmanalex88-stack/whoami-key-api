@@ -7,7 +7,7 @@ export default function handler(req, res) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
 
-  const keyPath = path.resolve('./keys.json');
+  const keyPath = path.resolve('./data/keys.json'); // ini BENAR
   let keys = [];
 
   try {
