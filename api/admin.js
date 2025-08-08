@@ -12,8 +12,9 @@ export default function handler(req, res) {
 
   try {
     keys = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-  } catch {
-    keys = [];
+  } catch (error) {
+    console.error("Gagal baca keys.json:", error);
+    return res.status(500).json({ error: 'Failed to read keys.json' });
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -33,5 +34,5 @@ export default function handler(req, res) {
     };
   });
 
-  res.json({ keys: keysWithDays });
+  res.status(200).json({ keys: keysWithDays });
 }
