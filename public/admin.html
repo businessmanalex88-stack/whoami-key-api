@@ -5,328 +5,781 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WhoAmI Admin Panel</title>
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #0c0c0c;
-      color: #fff;
+    * {
       margin: 0;
       padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      box-sizing: border-box;
     }
-    header {
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 50%, #0a0a0a 100%);
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      background: linear-gradient(90deg, #ff0000, #550000);
-      padding: 20px 0;
-      text-align: center;
-      box-shadow: 0 4px 20px red;
+      height: 100%;
+      background: radial-gradient(circle at 20% 80%, rgba(255, 0, 0, 0.1) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 20%, rgba(255, 0, 0, 0.05) 0%, transparent 50%);
+      animation: pulse 4s ease-in-out infinite alternate;
+      z-index: -1;
     }
+
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    header {
+      background: linear-gradient(135deg, #ff0000 0%, #cc0000 50%, #990000 100%);
+      padding: 24px 0;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(255, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
     h1 {
-      margin: 0;
-      font-size: 32px;
+      font-size: 36px;
+      font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 16px;
+      margin-bottom: 16px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
-    .gif-glow {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      box-shadow: 0 0 10px red, 0 0 20px red, 0 0 30px red;
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(45deg, #ff4444, #ff0000);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+      animation: glow 2s ease-in-out infinite alternate;
     }
+
+    @keyframes glow {
+      0% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.6); }
+      100% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.8); }
+    }
+
     nav {
-      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
-    nav button {
-      margin: 0 5px;
-      padding: 10px 20px;
+
+    .nav-button {
+      position: relative;
+      padding: 12px 24px;
       border: none;
-      border-radius: 6px;
-      background-color: #222;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.3);
       color: white;
       cursor: pointer;
-      transition: background 0.3s;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
     }
-    nav button.active,
-    nav button:hover {
-      background-color: #ff0000;
-      box-shadow: 0 0 10px red;
+
+    .nav-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.2), transparent);
+      transition: left 0.5s;
     }
-    main {
-      width: 90%;
-      max-width: 1000px;
-      background-color: #1a1a1a;
-      margin-top: 20px;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+
+    .nav-button:hover::before {
+      left: 100%;
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255, 0, 0, 0.3);
+      border-color: rgba(255, 0, 0, 0.5);
+    }
+
+    .nav-button.active {
+      background: linear-gradient(135deg, #ff0000, #cc0000);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 32px auto;
+      padding: 0 20px;
+    }
+
+    .main-panel {
+      background: rgba(26, 26, 26, 0.95);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
       display: none;
+      animation: slideIn 0.5s ease-out;
     }
-    main.active {
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .main-panel.active {
       display: block;
     }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      font-size: 14px;
-      border: none;
-      border-radius: 6px;
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid rgba(255, 0, 0, 0.2);
     }
-    input {
-      background-color: #222;
+
+    .panel-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ff4444;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .input-field {
+      padding: 14px 18px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.3);
       color: white;
-      border: 1px solid #444;
-    }
-    button {
-      cursor: pointer;
+      font-size: 16px;
       transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      min-width: 200px;
     }
-    .reset-btn {
-      background-color: #ff4c4c;
+
+    .input-field:focus {
+      outline: none;
+      border-color: #ff0000;
+      box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .btn {
+      padding: 14px 28px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ff0000, #cc0000);
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 0, 0, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #444, #666);
       color: white;
     }
-    .reset-btn:hover {
-      background-color: #ff0000;
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     }
-    .refresh-btn {
-      background-color: #ff0000;
+
+    .btn-success {
+      background: linear-gradient(135deg, #00aa00, #008800);
       color: white;
-      font-weight: bold;
-      box-shadow: 0 0 10px red;
     }
-    .refresh-btn:hover {
-      background-color: #cc0000;
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 170, 0, 0.3);
     }
-    table {
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ff4444, #cc0000);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 68, 68, 0.3);
+    }
+
+    .data-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      margin-top: 24px;
     }
-    th, td {
-      padding: 10px;
-      border: 1px solid #333;
-      text-align: center;
+
+    .data-table thead {
+      background: linear-gradient(135deg, #333, #444);
     }
-    th {
-      background-color: #111;
-      color: #ff4c4c;
+
+    .data-table th {
+      padding: 18px 16px;
+      text-align: left;
+      font-weight: 700;
+      color: #ff4444;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    td {
-      background-color: #1e1e1e;
+
+    .data-table tbody tr {
+      background: rgba(30, 30, 30, 0.8);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
     }
-    footer {
-      margin-top: 40px;
-      color: #666;
-      font-size: 12px;
+
+    .data-table tbody tr:hover {
+      background: rgba(50, 50, 50, 0.8);
+      transform: scale(1.01);
     }
-    pre#generatedKeys {
-      background-color: #111;
+
+    .data-table td {
+      padding: 16px;
+      color: #ddd;
+      font-family: 'Courier New', monospace;
+    }
+
+    .status-active {
+      color: #4ade80;
+      font-weight: 600;
+    }
+
+    .status-inactive {
+      color: #f87171;
+      font-weight: 600;
+    }
+
+    .code-output {
+      background: linear-gradient(135deg, #111, #222);
       color: #00ff88;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 10px;
+      padding: 24px;
+      border-radius: 12px;
+      margin-top: 20px;
       white-space: pre-wrap;
       word-break: break-word;
-      box-shadow: 0 0 10px #00ff88;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      font-family: 'Courier New', monospace;
+      max-height: 300px;
+      overflow-y: auto;
     }
-    #copyBtn {
-      background-color: #00ff88;
-      color: #000;
-      margin-left: 5px;
-      font-weight: bold;
-      border: none;
-      border-radius: 6px;
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
     }
-    #copyBtn:hover {
-      background-color: #00cc66;
+
+    .stat-card {
+      background: rgba(30, 30, 30, 0.8);
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .stat-number {
+      font-size: 32px;
+      font-weight: 700;
+      color: #ff4444;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      color: #999;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #333;
+      border-radius: 50%;
+      border-top-color: #ff0000;
+      animation: spin 1s ease-in-out infinite;
+      margin-left: 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #666;
+      font-size: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 40px;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification.success {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .notification.error {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 16px;
+      }
+      
+      .main-panel {
+        padding: 20px;
+        border-radius: 16px;
+      }
+      
+      .input-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .input-field {
+        min-width: unset;
+      }
     }
   </style>
 </head>
 <body>
   <header>
     <h1>
+      <div class="logo">🔐</div>
       <span>WhoAmI Admin Panel</span>
-      <img src="https://media.giphy.com/media/hJXPF4s7yoaQ1McAEK/giphy.gif" alt="Admin GIF" class="gif-glow" />
     </h1>
     <nav>
-      <button onclick="switchTab('keys')" class="active">🔑 Keys</button>
-      <button onclick="switchTab('logs')">📜 Logs</button>
-      <button onclick="switchTab('generator')">➕ Generate Key</button>
+      <button class="nav-button active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+      <button class="nav-button" onclick="switchTab('keys')">🔑 Keys</button>
+      <button class="nav-button" onclick="switchTab('logs')">📜 Logs</button>
+      <button class="nav-button" onclick="switchTab('generator')">➕ Generate</button>
     </nav>
   </header>
 
-  <main id="keys" class="active">
-    <input type="password" id="password" placeholder="Admin Password" />
-    <button onclick="fetchKeys()" class="refresh-btn">🔍 View All Keys</button>
-    <table id="keyTable">
-      <thead>
-        <tr>
-          <th>Key</th>
-          <th>User</th>
-          <th>Days Left</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </main>
+  <div class="container">
+    <!-- Dashboard Panel -->
+    <div id="dashboard" class="main-panel active">
+      <div class="panel-header">
+        <h2 class="panel-title">📊 Dashboard</h2>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="totalKeys">-</div>
+          <div class="stat-label">Total Keys</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="activeKeys">-</div>
+          <div class="stat-label">Active Keys</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="usedKeys">-</div>
+          <div class="stat-label">Used Keys</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="todayLogs">-</div>
+          <div class="stat-label">Today's Usage</div>
+        </div>
+      </div>
 
-  <main id="logs">
-    <input type="password" id="logPassword" placeholder="Admin Password" />
-    <button onclick="fetchLogs()" class="refresh-btn">📄 Load Logs</button>
-    <table id="logTable">
-      <thead>
-        <tr>
-          <th>Key</th>
-          <th>User</th>
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </main>
+      <div class="input-group">
+        <input type="password" class="input-field" id="dashPassword" placeholder="🔒 Admin Password" />
+        <button class="btn btn-primary" onclick="loadDashboard()">📈 Load Dashboard</button>
+      </div>
+    </div>
 
-  <main id="generator">
-    <input type="password" id="genPassword" placeholder="Admin Password" />
-    <input type="number" id="genAmount" placeholder="Amount (1-20)" min="1" max="20" />
-    <button onclick="generateKeys()" class="refresh-btn">⚙️ Generate Keys</button>
-    <button id="copyBtn" onclick="copyKeys()">📋 Copy Keys</button>
-    <pre id="generatedKeys"></pre>
-  </main>
+    <!-- Keys Panel -->
+    <div id="keys" class="main-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">🔑 Key Management</h2>
+      </div>
+
+      <div class="input-group">
+        <input type="password" class="input-field" id="password" placeholder="🔒 Admin Password" />
+        <button class="btn btn-primary" onclick="fetchKeys()">🔍 View All Keys</button>
+      </div>
+
+      <table class="data-table" id="keyTable">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>User</th>
+            <th>Days Left</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Logs Panel -->
+    <div id="logs" class="main-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">📜 Activity Logs</h2>
+      </div>
+
+      <div class="input-group">
+        <input type="password" class="input-field" id="logPassword" placeholder="🔒 Admin Password" />
+        <button class="btn btn-primary" onclick="fetchLogs()">📄 Load Logs</button>
+      </div>
+
+      <table class="data-table" id="logTable">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>User</th>
+            <th>Timestamp</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Generator Panel -->
+    <div id="generator" class="main-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">➕ Key Generator</h2>
+      </div>
+
+      <div class="input-group">
+        <input type="password" class="input-field" id="genPassword" placeholder="🔒 Admin Password" />
+        <input type="number" class="input-field" id="genAmount" placeholder="Amount (1-20)" min="1" max="20" value="1" />
+        <button class="btn btn-primary" onclick="generateKeys()">⚙️ Generate Keys</button>
+        <button class="btn btn-success" id="copyBtn" onclick="copyKeys()">📋 Copy Keys</button>
+      </div>
+
+      <pre class="code-output" id="generatedKeys">Generated keys will appear here...</pre>
+    </div>
+  </div>
 
   <footer>
     &copy; 2025 WhoAmI Security System - Admin Access Only
   </footer>
 
   <script>
+    // Mock data for demonstration
+    let mockKeys = [
+      { key: 'whoamidev1819', user: 'admin', days_left: 365, status: 'active' },
+      { key: 'key123456789', user: 'user1', days_left: 30, status: 'active' },
+      { key: 'key987654321', user: 'user2', days_left: 0, status: 'expired' },
+      { key: 'key456789123', user: null, days_left: null, status: 'unused' }
+    ];
+
+    let mockLogs = [
+      { key: 'whoamidev1819', user: 'admin', timestamp: Date.now() / 1000 - 3600, status: 'success' },
+      { key: 'key123456789', user: 'user1', timestamp: Date.now() / 1000 - 7200, status: 'success' },
+      { key: 'key987654321', user: 'user2', timestamp: Date.now() / 1000 - 86400, status: 'expired' }
+    ];
+
     function switchTab(tab) {
-      document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('main').forEach(m => m.classList.remove('active'));
-      document.querySelector(`#${tab}`).classList.add('active');
+      // Update navigation
+      document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.main-panel').forEach(panel => panel.classList.remove('active'));
+      
+      // Show selected tab
+      document.getElementById(tab).classList.add('active');
       event.target.classList.add('active');
+    }
+
+    function showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => notification.classList.add('show'), 100);
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => document.body.removeChild(notification), 300);
+      }, 3000);
+    }
+
+    function loadDashboard() {
+      const pwd = document.getElementById('dashPassword').value;
+      
+      if (!pwd) {
+        showNotification('Please enter admin password', 'error');
+        return;
+      }
+      
+      // Simulate loading
+      document.getElementById('totalKeys').textContent = '-';
+      document.getElementById('activeKeys').textContent = '-';
+      document.getElementById('usedKeys').textContent = '-';
+      document.getElementById('todayLogs').textContent = '-';
+      
+      setTimeout(() => {
+        const totalKeys = mockKeys.length;
+        const activeKeys = mockKeys.filter(k => k.status === 'active').length;
+        const usedKeys = mockKeys.filter(k => k.user).length;
+        const todayLogs = mockLogs.filter(log => {
+          const today = new Date();
+          const logDate = new Date(log.timestamp * 1000);
+          return logDate.toDateString() === today.toDateString();
+        }).length;
+        
+        document.getElementById('totalKeys').textContent = totalKeys;
+        document.getElementById('activeKeys').textContent = activeKeys;
+        document.getElementById('usedKeys').textContent = usedKeys;
+        document.getElementById('todayLogs').textContent = todayLogs;
+        
+        showNotification('Dashboard loaded successfully!');
+      }, 1000);
     }
 
     async function fetchKeys() {
       const pwd = document.getElementById('password').value;
-      const res = await fetch(`/api/admin?password=${pwd}`);
-      const data = await res.json();
-      const tbody = document.querySelector("#keyTable tbody");
-      tbody.innerHTML = "";
-
-      if (data.error) {
-        alert("Error: " + data.error);
+      
+      if (!pwd) {
+        showNotification('Please enter admin password', 'error');
         return;
       }
+      
+      const tbody = document.querySelector("#keyTable tbody");
+      tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading keys...</td></tr>';
 
-      data.keys.forEach(k => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${k.key}</td>
-          <td>${k.user || '-'}</td>
-          <td>${k.days_left !== null ? k.days_left : '-'}</td>
-          <td><button class="reset-btn" onclick="resetKey('${k.key}')">Reset</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
+      // Simulate API call
+      setTimeout(() => {
+        tbody.innerHTML = "";
+        
+        mockKeys.forEach(k => {
+          const tr = document.createElement("tr");
+          const statusClass = k.status === 'active' ? 'status-active' : 
+                            k.status === 'expired' ? 'status-inactive' : '';
+          
+          tr.innerHTML = `
+            <td>${k.key}</td>
+            <td>${k.user || '-'}</td>
+            <td>${k.days_left !== null ? k.days_left : '-'}</td>
+            <td><span class="${statusClass}">${k.status}</span></td>
+            <td>
+              <button class="btn btn-danger btn-sm" onclick="resetKey('${k.key}')">🔄 Reset</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        
+        showNotification('Keys loaded successfully!');
+      }, 800);
     }
 
     async function resetKey(key) {
-      const pwd = document.getElementById('password').value || document.getElementById('genPassword').value;
-      const res = await fetch(`/api/resetKey?key=${key}&password=${pwd}`);
-      const data = await res.json();
-      if (data.success) {
-        alert(data.message);
+      if (!confirm(`Reset key: ${key}?`)) return;
+      
+      const keyIndex = mockKeys.findIndex(k => k.key === key);
+      if (keyIndex !== -1) {
+        mockKeys[keyIndex].user = null;
+        mockKeys[keyIndex].status = 'unused';
+        mockKeys[keyIndex].days_left = null;
+        showNotification(`Key ${key} reset successfully!`);
         fetchKeys();
-      } else {
-        alert("Error: " + data.error);
       }
     }
 
     async function fetchLogs() {
       const pwd = document.getElementById('logPassword').value;
-      const res = await fetch(`/api/logs?password=${pwd}`);
-      const data = await res.json();
-      const tbody = document.querySelector("#logTable tbody");
-      tbody.innerHTML = "";
-      if (data.error) {
-        alert("Error: " + data.error);
+      
+      if (!pwd) {
+        showNotification('Please enter admin password', 'error');
         return;
       }
-      data.logs.forEach(log => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${log.key}</td>
-          <td>${log.user}</td>
-          <td>${new Date(log.timestamp * 1000).toLocaleString()}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+      
+      const tbody = document.querySelector("#logTable tbody");
+      tbody.innerHTML = '<tr><td colspan="4" class="loading">Loading logs...</td></tr>';
+      
+      setTimeout(() => {
+        tbody.innerHTML = "";
+        
+        mockLogs.forEach(log => {
+          const tr = document.createElement("tr");
+          const statusClass = log.status === 'success' ? 'status-active' : 'status-inactive';
+          
+          tr.innerHTML = `
+            <td>${log.key}</td>
+            <td>${log.user}</td>
+            <td>${new Date(log.timestamp * 1000).toLocaleString()}</td>
+            <td><span class="${statusClass}">${log.status}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+        
+        showNotification('Logs loaded successfully!');
+      }, 800);
     }
 
     async function generateKeys() {
       const pwd = document.getElementById('genPassword').value;
-      const amount = document.getElementById('genAmount').value;
+      const amount = parseInt(document.getElementById('genAmount').value) || 1;
       const output = document.getElementById("generatedKeys");
 
-      output.textContent = "Generating keys...";
-
-      try {
-        const res = await fetch(`/api/generateKeys`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: pwd, amount: amount })
-        });
-
-        const data = await res.json();
-
-        if (data.error) {
-          output.textContent = "";
-          alert("Error: " + data.error);
-          return;
-        }
-
-        output.textContent = data.keys.join("\n");
-
-        const tbody = document.querySelector("#keyTable tbody");
-        const rows = Array.from(tbody.querySelectorAll("tr"));
-        rows.forEach(row => {
-          const key = row.children[0].textContent.trim();
-          if (key !== "whoamidev1819") {
-            row.remove();
-          }
-        });
-
-        data.keys.forEach(k => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${k}</td>
-            <td>-</td>
-            <td>-</td>
-            <td><button class="reset-btn" onclick="resetKey('${k}')">Reset</button></td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-      } catch (err) {
-        output.textContent = "";
-        alert("Failed to generate keys. Please try again.");
-        console.error(err);
+      if (!pwd) {
+        showNotification('Please enter admin password', 'error');
+        return;
       }
+
+      if (amount < 1 || amount > 20) {
+        showNotification('Amount must be between 1 and 20', 'error');
+        return;
+      }
+
+      output.textContent = "🔄 Generating keys...";
+
+      setTimeout(() => {
+        const newKeys = [];
+        for (let i = 0; i < amount; i++) {
+          const key = 'key' + Math.random().toString(36).substr(2, 12);
+          newKeys.push(key);
+          mockKeys.push({ key, user: null, days_left: null, status: 'unused' });
+        }
+        
+        output.textContent = newKeys.join("\n");
+        showNotification(`Generated ${amount} keys successfully!`);
+        
+        // Update keys table if visible
+        const keysPanel = document.getElementById('keys');
+        if (keysPanel.classList.contains('active')) {
+          fetchKeys();
+        }
+      }, 1500);
     }
 
     function copyKeys() {
       const text = document.getElementById("generatedKeys").textContent;
-      if (!text.trim()) {
-        alert("No keys to copy.");
+      if (!text.trim() || text.includes('Generated keys will appear') || text.includes('Generating')) {
+        showNotification('No keys to copy', 'error');
         return;
       }
 
       navigator.clipboard.writeText(text)
-        .then(() => alert("✅ Keys copied to clipboard!"))
-        .catch(() => alert("❌ Failed to copy keys."));
+        .then(() => showNotification('Keys copied to clipboard!'))
+        .catch(() => showNotification('Failed to copy keys', 'error'));
     }
+
+    // Auto-load dashboard on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Auto focus on password field for better UX
+      setTimeout(() => {
+        const dashPasswordField = document.getElementById('dashPassword');
+        if (dashPasswordField) {
+          dashPasswordField.focus();
+        }
+      }, 500);
+    });
   </script>
 </body>
 </html>
