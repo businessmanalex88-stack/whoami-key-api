@@ -1,18 +1,21 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const logsFile = path.join(__dirname, "../data/logs.json");
-
-const ADMIN_PASSWORD = "Whoamidev1819";
+import fs from 'fs';
+import path from 'path';
 
 export default function handler(req, res) {
   const { password } = req.query;
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(403).json({ error: "Unauthorized" });
+
+  if (password !== 'Whoamidev1819') {
+    return res.status(403).json({ error: 'Unauthorized' });
   }
 
-  const logs = JSON.parse(fs.readFileSync(logsFile, "utf8"));
-  res.json(logs);
+  const logPath = path.resolve('./data/logs.json');
+
+  try {
+    const content = fs.readFileSync(logPath, 'utf8');
+    const logs = JSON.parse(content);
+    return res.status(200).json({ logs });
+  } catch (err) {
+    console.error("Gagal baca logs.json:", err);
+    return res.status(500).json({ error: 'Failed to read logs.json' });
+  }
 }
