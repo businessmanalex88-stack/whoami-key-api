@@ -12,23 +12,27 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const logFilePath = path.resolve('./logs.json');
-
-  let logs = [];
-
-  try {
-    const fileContent = fs.readFileSync(logFilePath, 'utf8');
-    logs = JSON.parse(fileContent);
-  } catch (err) {
-    logs = [];
-  }
-
-  logs.push({ key, user, timestamp });
+  const keyPath = path.resolve('./keys.json');
+  let keys = [];
 
   try {
-    fs.writeFileSync(logFilePath, JSON.stringify(logs, null, 2));
-    return res.status(200).json({ success: true, message: 'Log saved successfully' });
-  } catch (err) {
-    return res.status(500).json({ error: 'Failed to save log' });
+    const content = fs.readFileSync(keyPath, 'utf8');
+    keys = JSON.parse(content);
+  } catch {
+    keys = [];
   }
+
+  const existingKey = keys.find(k => k.key === key);
+
+  if (existingKey) {
+    if (!existingKey.first_used) {
+      existingKey.first_used = timestamp;
+      existingKey.user = user;
+    }
+  } else {
+    keys.push({ key, user, first_used: timestamp });
+  }
+
+  fs.writeFileSync(keyPath, JSON.stringify(keys, null, 2));
+  return res.json({ success: true, message: 'Key usage logged' });
 }
