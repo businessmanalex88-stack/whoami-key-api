@@ -318,29 +318,14 @@
       font-family: 'Courier New', monospace;
     }
 
-    .status-active {
-      color: #4ade80;
+    .status-unused {
+      color: #64748b;
       font-weight: 600;
     }
 
-    .status-inactive {
+    .status-used {
       color: #f87171;
       font-weight: 600;
-    }
-
-    .code-output {
-      background: linear-gradient(135deg, #111, #222);
-      color: #00ff88;
-      padding: 24px;
-      border-radius: 12px;
-      margin-top: 20px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
-      border: 1px solid rgba(0, 255, 136, 0.3);
-      font-family: 'Courier New', monospace;
-      max-height: 300px;
-      overflow-y: auto;
     }
 
     .stats-grid {
@@ -375,6 +360,21 @@
       font-size: 14px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+
+    .code-output {
+      background: linear-gradient(135deg, #111, #222);
+      color: #00ff88;
+      padding: 24px;
+      border-radius: 12px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      font-family: 'Courier New', monospace;
+      max-height: 300px;
+      overflow-y: auto;
     }
 
     .loading {
@@ -434,6 +434,35 @@
       background: linear-gradient(135deg, #ef4444, #dc2626);
     }
 
+    .api-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .api-status.connected {
+      color: #10b981;
+    }
+
+    .api-status.disconnected {
+      color: #ef4444;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
     @media (max-width: 768px) {
       .container {
         padding: 0 16px;
@@ -474,6 +503,10 @@
     <div id="dashboard" class="main-panel active">
       <div class="panel-header">
         <h2 class="panel-title">📊 Dashboard</h2>
+        <div class="api-status" id="apiStatus">
+          <div class="status-dot"></div>
+          <span>API Status</span>
+        </div>
       </div>
       
       <div class="stats-grid">
@@ -482,8 +515,8 @@
           <div class="stat-label">Total Keys</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number" id="activeKeys">-</div>
-          <div class="stat-label">Active Keys</div>
+          <div class="stat-number" id="unusedKeys">-</div>
+          <div class="stat-label">Unused Keys</div>
         </div>
         <div class="stat-card">
           <div class="stat-number" id="usedKeys">-</div>
@@ -517,7 +550,7 @@
           <tr>
             <th>Key</th>
             <th>User</th>
-            <th>Days Left</th>
+            <th>First Used</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -572,29 +605,8 @@
   </footer>
 
   <script>
-    // Mock data for demonstration
-    let mockKeys = [
-      { key: 'whoamidev1819', user: 'admin', days_left: 365, status: 'active' },
-      { key: 'key123456789', user: 'user1', days_left: 30, status: 'active' },
-      { key: 'key987654321', user: 'user2', days_left: 0, status: 'expired' },
-      { key: 'key456789123', user: null, days_left: null, status: 'unused' }
-    ];
-
-    let mockLogs = [
-      { key: 'whoamidev1819', user: 'admin', timestamp: Date.now() / 1000 - 3600, status: 'success' },
-      { key: 'key123456789', user: 'user1', timestamp: Date.now() / 1000 - 7200, status: 'success' },
-      { key: 'key987654321', user: 'user2', timestamp: Date.now() / 1000 - 86400, status: 'expired' }
-    ];
-
-    function switchTab(tab) {
-      // Update navigation
-      document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.main-panel').forEach(panel => panel.classList.remove('active'));
-      
-      // Show selected tab
-      document.getElementById(tab).classList.add('active');
-      event.target.classList.add('active');
-    }
+    const API_BASE = 'https://whoami-key-api.vercel.app/api';
+    let currentData = { keys: [], logs: [] };
 
     function showNotification(message, type = 'success') {
       const notification = document.createElement('div');
@@ -609,7 +621,21 @@
       }, 3000);
     }
 
-    function loadDashboard() {
+    function updateApiStatus(connected) {
+      const status = document.getElementById('apiStatus');
+      status.className = `api-status ${connected ? 'connected' : 'disconnected'}`;
+      status.querySelector('span').textContent = connected ? 'API Connected' : 'API Disconnected';
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.main-panel').forEach(panel => panel.classList.remove('active'));
+      
+      document.getElementById(tab).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    async function loadDashboard() {
       const pwd = document.getElementById('dashPassword').value;
       
       if (!pwd) {
@@ -617,29 +643,49 @@
         return;
       }
       
-      // Simulate loading
-      document.getElementById('totalKeys').textContent = '-';
-      document.getElementById('activeKeys').textContent = '-';
-      document.getElementById('usedKeys').textContent = '-';
-      document.getElementById('todayLogs').textContent = '-';
-      
-      setTimeout(() => {
-        const totalKeys = mockKeys.length;
-        const activeKeys = mockKeys.filter(k => k.status === 'active').length;
-        const usedKeys = mockKeys.filter(k => k.user).length;
-        const todayLogs = mockLogs.filter(log => {
+      try {
+        updateApiStatus(false);
+        const response = await fetch(`${API_BASE}/admin?password=${encodeURIComponent(pwd)}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          showNotification(data.error, 'error');
+          return;
+        }
+
+        updateApiStatus(true);
+        currentData.keys = data.keys || [];
+
+        // Fetch logs for dashboard stats
+        try {
+          const logsResponse = await fetch(`${API_BASE}/logs?password=${encodeURIComponent(pwd)}`);
+          const logsData = await logsResponse.json();
+          currentData.logs = logsData.logs || [];
+        } catch (e) {
+          currentData.logs = [];
+        }
+        
+        // Calculate stats
+        const totalKeys = currentData.keys.length;
+        const unusedKeys = currentData.keys.filter(k => !k.user).length;
+        const usedKeys = currentData.keys.filter(k => k.user).length;
+        const todayLogs = currentData.logs.filter(log => {
           const today = new Date();
           const logDate = new Date(log.timestamp * 1000);
           return logDate.toDateString() === today.toDateString();
         }).length;
         
         document.getElementById('totalKeys').textContent = totalKeys;
-        document.getElementById('activeKeys').textContent = activeKeys;
+        document.getElementById('unusedKeys').textContent = unusedKeys;
         document.getElementById('usedKeys').textContent = usedKeys;
         document.getElementById('todayLogs').textContent = todayLogs;
         
         showNotification('Dashboard loaded successfully!');
-      }, 1000);
+      } catch (error) {
+        console.error('Dashboard error:', error);
+        updateApiStatus(false);
+        showNotification('Failed to connect to API', 'error');
+      }
     }
 
     async function fetchKeys() {
@@ -653,41 +699,63 @@
       const tbody = document.querySelector("#keyTable tbody");
       tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading keys...</td></tr>';
 
-      // Simulate API call
-      setTimeout(() => {
+      try {
+        const response = await fetch(`${API_BASE}/admin?password=${encodeURIComponent(pwd)}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          showNotification(data.error, 'error');
+          tbody.innerHTML = '';
+          return;
+        }
+
+        currentData.keys = data.keys || [];
         tbody.innerHTML = "";
         
-        mockKeys.forEach(k => {
+        currentData.keys.forEach(k => {
           const tr = document.createElement("tr");
-          const statusClass = k.status === 'active' ? 'status-active' : 
-                            k.status === 'expired' ? 'status-inactive' : '';
+          const status = k.user ? 'used' : 'unused';
+          const statusClass = k.user ? 'status-used' : 'status-unused';
+          const firstUsed = k.first_used ? new Date(k.first_used).toLocaleString() : '-';
           
           tr.innerHTML = `
             <td>${k.key}</td>
             <td>${k.user || '-'}</td>
-            <td>${k.days_left !== null ? k.days_left : '-'}</td>
-            <td><span class="${statusClass}">${k.status}</span></td>
+            <td>${firstUsed}</td>
+            <td><span class="${statusClass}">${status}</span></td>
             <td>
-              <button class="btn btn-danger btn-sm" onclick="resetKey('${k.key}')">🔄 Reset</button>
+              <button class="btn btn-danger" onclick="resetKey('${k.key}')">🔄 Reset</button>
             </td>
           `;
           tbody.appendChild(tr);
         });
         
         showNotification('Keys loaded successfully!');
-      }, 800);
+      } catch (error) {
+        console.error('Fetch keys error:', error);
+        showNotification('Failed to fetch keys', 'error');
+        tbody.innerHTML = '';
+      }
     }
 
     async function resetKey(key) {
       if (!confirm(`Reset key: ${key}?`)) return;
       
-      const keyIndex = mockKeys.findIndex(k => k.key === key);
-      if (keyIndex !== -1) {
-        mockKeys[keyIndex].user = null;
-        mockKeys[keyIndex].status = 'unused';
-        mockKeys[keyIndex].days_left = null;
-        showNotification(`Key ${key} reset successfully!`);
-        fetchKeys();
+      const pwd = document.getElementById('password').value || document.getElementById('genPassword').value;
+      
+      try {
+        const response = await fetch(`${API_BASE}/resetKey?key=${encodeURIComponent(key)}&password=${encodeURIComponent(pwd)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          showNotification(data.message);
+          fetchKeys();
+        } else {
+          showNotification(data.error || 'Failed to reset key', 'error');
+        }
+      } catch (error) {
+        console.error('Reset key error:', error);
+        showNotification('Failed to reset key', 'error');
       }
     }
 
@@ -702,24 +770,37 @@
       const tbody = document.querySelector("#logTable tbody");
       tbody.innerHTML = '<tr><td colspan="4" class="loading">Loading logs...</td></tr>';
       
-      setTimeout(() => {
+      try {
+        const response = await fetch(`${API_BASE}/logs?password=${encodeURIComponent(pwd)}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          showNotification(data.error, 'error');
+          tbody.innerHTML = '';
+          return;
+        }
+
+        currentData.logs = data.logs || [];
         tbody.innerHTML = "";
         
-        mockLogs.forEach(log => {
+        currentData.logs.forEach(log => {
           const tr = document.createElement("tr");
-          const statusClass = log.status === 'success' ? 'status-active' : 'status-inactive';
           
           tr.innerHTML = `
             <td>${log.key}</td>
             <td>${log.user}</td>
             <td>${new Date(log.timestamp * 1000).toLocaleString()}</td>
-            <td><span class="${statusClass}">${log.status}</span></td>
+            <td><span class="status-used">success</span></td>
           `;
           tbody.appendChild(tr);
         });
         
         showNotification('Logs loaded successfully!');
-      }, 800);
+      } catch (error) {
+        console.error('Fetch logs error:', error);
+        showNotification('Failed to fetch logs', 'error');
+        tbody.innerHTML = '';
+      }
     }
 
     async function generateKeys() {
@@ -739,23 +820,34 @@
 
       output.textContent = "🔄 Generating keys...";
 
-      setTimeout(() => {
-        const newKeys = [];
-        for (let i = 0; i < amount; i++) {
-          const key = 'key' + Math.random().toString(36).substr(2, 12);
-          newKeys.push(key);
-          mockKeys.push({ key, user: null, days_left: null, status: 'unused' });
+      try {
+        const response = await fetch(`${API_BASE}/generateKeys`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd, amount: amount })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          output.textContent = "Generated keys will appear here...";
+          showNotification(data.error, 'error');
+          return;
         }
-        
-        output.textContent = newKeys.join("\n");
+
+        output.textContent = data.keys.join("\n");
         showNotification(`Generated ${amount} keys successfully!`);
         
         // Update keys table if visible
         const keysPanel = document.getElementById('keys');
-        if (keysPanel.classList.contains('active')) {
+        if (keysPanel.classList.contains('active') && currentData.keys.length > 0) {
           fetchKeys();
         }
-      }, 1500);
+      } catch (error) {
+        console.error('Generate keys error:', error);
+        output.textContent = "Generated keys will appear here...";
+        showNotification('Failed to generate keys', 'error');
+      }
     }
 
     function copyKeys() {
@@ -772,7 +864,6 @@
 
     // Auto-load dashboard on page load
     document.addEventListener('DOMContentLoaded', function() {
-      // Auto focus on password field for better UX
       setTimeout(() => {
         const dashPasswordField = document.getElementById('dashPassword');
         if (dashPasswordField) {
@@ -782,4 +873,4 @@
     });
   </script>
 </body>
-</html>
+  </html>
