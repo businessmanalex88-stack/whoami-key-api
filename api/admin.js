@@ -1,34 +1,37 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const keysFile = path.join(__dirname, "../data/keys.json");
-
-const ADMIN_PASSWORD = "Whoamidev1819";
+import fs from 'fs';
+import path from 'path';
 
 export default function handler(req, res) {
   const { password } = req.query;
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(403).json({ error: "Unauthorized" });
+  if (password !== 'Whoamidev1819') {
+    return res.status(403).json({ error: 'Unauthorized' });
   }
 
-  const keys = JSON.parse(fs.readFileSync(keysFile, "utf8"));
-  const now = Math.floor(Date.now() / 1000);
-  const expiresIn = 7 * 24 * 60 * 60;
+  const keyPath = path.resolve('./keys.json');
+  let keys = [];
 
-  const data = keys.map(k => {
-    const used = !!k.user;
-    const days_left = used
-      ? Math.max(0, Math.floor((expiresIn - (now - (k.timestamp || 0))) / 86400))
-      : null;
+  try {
+    keys = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+  } catch {
+    keys = [];
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const keysWithDays = keys.map(k => {
+    let daysLeft = null;
+
+    if (k.first_used) {
+      const usedAt = k.first_used;
+      const days = Math.max(0, 7 - Math.floor((now - usedAt) / (60 * 60 * 24)));
+      daysLeft = days;
+    }
 
     return {
       key: k.key,
-      user: k.user || null,
-      days_left,
+      user: k.user || "-",
+      days_left: daysLeft !== null ? daysLeft : "-"
     };
   });
 
-  res.json({ keys: data });
+  res.json({ keys: keysWithDays });
 }
