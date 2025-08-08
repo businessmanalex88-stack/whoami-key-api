@@ -12,7 +12,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const keyPath = path.resolve('./keys.json');
+  // ==== Update data/keys.json ====
+  const keyPath = path.resolve('./data/keys.json');
   let keys = [];
 
   try {
@@ -34,5 +35,21 @@ export default async function handler(req, res) {
   }
 
   fs.writeFileSync(keyPath, JSON.stringify(keys, null, 2));
+
+  // ==== Tambahkan ke data/logs.json ====
+  const logPath = path.resolve('./data/logs.json');
+  let logs = [];
+
+  try {
+    const logContent = fs.readFileSync(logPath, 'utf8');
+    logs = JSON.parse(logContent);
+  } catch {
+    logs = [];
+  }
+
+  logs.push({ key, user, timestamp });
+
+  fs.writeFileSync(logPath, JSON.stringify(logs, null, 2));
+
   return res.json({ success: true, message: 'Key usage logged' });
 }
