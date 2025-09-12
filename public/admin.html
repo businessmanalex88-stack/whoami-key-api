@@ -1,727 +1,540 @@
--- =====================================================
--- WarpahVip Bypass - Professional Edition v2.0 + HWID
--- Enhanced security with Hardware ID binding
--- 1 Key = 1 Device (Permanent)
--- =====================================================
-
--- Services
-local Services = {
-    Players = game:GetService("Players"),
-    HttpService = game:GetService("HttpService"),
-    UserInputService = game:GetService("UserInputService"),
-    TweenService = game:GetService("TweenService"),
-    ReplicatedStorage = game:GetService("ReplicatedStorage"),
-    SoundService = game:GetService("SoundService")
-}
-
--- Configuration
-local Config = {
-    API_BASE = "https://whoami-key-api.vercel.app/api",
-    ADMIN_PASSWORD = "Whoamidev1819",
-    FALLBACK_KEYS = {
-        ["Adminganteng"] = true,
-        ["Whoamidev"] = true,
-        ["WhoAmIAdmin2025"] = true
-    },
-    MAIN_SCRIPT_URL = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats",
-    DISCORD_LINK = "https://discord.gg/e77s79ZJ",
-    LOOTLABS_LINK = "https://lootdest.org/s?Zvo1qoxp"
-}
-
--- Variables
-local player = Services.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-local screenGui = nil
-local mainFrame = nil
-
--- ===========================================
--- HWID SYSTEM - FUNGSI UTAMA
--- ===========================================
-
--- Generate Hardware ID unik untuk device ini
-local function generateHWID()
-    local factors = {
-        tostring(player.UserId),
-        game.JobId,
-        tostring(game.PlaceId),
-        tostring(math.floor(workspace.DistributedGameTime * 1000)),
-        player.Name,
-        tostring(game:GetService("UserInputService").TouchEnabled),
-        tostring(game:GetService("UserInputService").KeyboardEnabled)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhoAmI Admin Panel - HWID System</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    
-    local combined = table.concat(factors, "-")
-    local hash = ""
-    
-    for i = 1, #combined do
-        local char = combined:sub(i, i):byte()
-        hash = hash .. string.format("%02x", (char * 13 + i * 7) % 256)
-    end
-    
-    return hash:sub(1, 24) -- Return 24 karakter
-end
 
--- Validasi key dengan sistem HWID
-local function validateKeyWithHWID(inputKey, statusText, callback)
-    statusText.Text = "🔧 Generating device signature..."
-    statusText.TextColor3 = Color3.fromRGB(255, 255, 100)
-    
-    -- Generate HWID untuk device ini
-    local deviceHWID = generateHWID()
-    
-    statusText.Text = "🔍 Checking device binding..."
-    
-    -- Cek fallback keys dulu (admin keys)
-    if Config.FALLBACK_KEYS[inputKey] then
-        statusText.Text = "✅ Admin access granted!"
-        statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-        task.wait(1)
-        callback(true, inputKey)
-        return
-    end
-    
-    -- Validasi dengan API HWID
-    local apiUrl = string.format(
-        "%s/validate-hwid?key=%s&hwid=%s&user=%s",
-        Config.API_BASE,
-        Services.HttpService:UrlEncode(inputKey),
-        Services.HttpService:UrlEncode(deviceHWID),
-        Services.HttpService:UrlEncode(player.Name)
-    )
-    
-    local success, response = pcall(function()
-        return game:HttpGet(apiUrl)
-    end)
-    
-    if success then
-        local parseSuccess, data = pcall(function()
-            return Services.HttpService:JSONDecode(response)
-        end)
-        
-        if parseSuccess and data.success then
-            if data.first_time then
-                statusText.Text = "🔗 Key bound to your device!"
-                statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-            else
-                statusText.Text = "✅ Device verified! Loading..."
-                statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-            end
-            
-            -- Log successful usage
-            pcall(function()
-                local logData = Services.HttpService:JSONEncode({
-                    key = inputKey,
-                    hwid = deviceHWID,
-                    user = player.Name,
-                    userId = player.UserId,
-                    timestamp = os.time(),
-                    place = game.PlaceId,
-                    success = true
-                })
-                
-                game:HttpPost(
-                    Config.API_BASE .. "/log-hwid",
-                    logData,
-                    Enum.HttpContentType.ApplicationJson,
-                    false
-                )
-            end)
-            
-            task.wait(1.5)
-            callback(true, inputKey)
-            return
-            
-        elseif parseSuccess and not data.success then
-            if data.error:find("terikat") or data.error:find("bound") then
-                statusText.Text = "🔒 Key bound to another device!"
-            else
-                statusText.Text = "❌ " .. (data.error or "Invalid key")
-            end
-            statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-            callback(false, inputKey)
-            return
-        end
-    end
-    
-    -- Fallback: coba API lama jika HWID API gagal
-    statusText.Text = "🔄 Trying legacy validation..."
-    
-    local legacySuccess, legacyResponse = pcall(function()
-        return game:HttpGet(Config.API_BASE .. "/admin?password=" .. Config.ADMIN_PASSWORD)
-    end)
-    
-    if legacySuccess then
-        local parseSuccess, data = pcall(function()
-            return Services.HttpService:JSONDecode(legacyResponse)
-        end)
-        
-        if parseSuccess and data.keys then
-            for _, keyData in pairs(data.keys) do
-                if type(keyData) == "table" and keyData.key == inputKey then
-                    statusText.Text = "⚠️ Using legacy mode (no HWID)"
-                    statusText.TextColor3 = Color3.fromRGB(255, 200, 100)
-                    task.wait(1)
-                    callback(true, inputKey)
-                    return
-                end
-            end
-        end
-    end
-    
-    -- Key tidak ditemukan
-    statusText.Text = "❌ Invalid key or connection failed!"
-    statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-    callback(false, inputKey)
-end
-
--- ===========================================
--- UTILITY FUNCTIONS (sama seperti sebelumnya)
--- ===========================================
-
-local Utils = {
-    typeWriterEffect = function(textLabel, text, speed)
-        textLabel.Text = ""
-        local speed = speed or 0.05
-        for i = 1, #text do
-            textLabel.Text = text:sub(1, i)
-            task.wait(speed)
-        end
-    end,
-    
-    copyToClipboard = function(text)
-        local success = pcall(function()
-            if setclipboard then
-                setclipboard(text)
-                return true
-            end
-        end)
-        return success
-    end,
-    
-    trim = function(str)
-        return str:match("^%s*(.-)%s*$")
-    end,
-    
-    shakeFrame = function(frame)
-        local originalPosition = frame.Position
-        local shakeInfo = TweenInfo.new(0.1, Enum.EasingStyle.Bounce, Enum.EasingDirection.InOut, 0, true, 0)
-        
-        for i = 1, 3 do
-            local offset = UDim2.new(0, math.random(-8, 8), 0, math.random(-5, 5))
-            local tween = Services.TweenService:Create(frame, shakeInfo, {Position = originalPosition + offset})
-            tween:Play()
-            tween.Completed:Wait()
-        end
-        
-        frame.Position = originalPosition
-    end,
-    
-    slideIn = function(frame, direction)
-        local originalPosition = frame.Position
-        local startPosition
-        
-        if direction == "top" then
-            startPosition = originalPosition - UDim2.new(0, 0, 1, 0)
-        elseif direction == "bottom" then
-            startPosition = originalPosition + UDim2.new(0, 0, 1, 0)
-        elseif direction == "left" then
-            startPosition = originalPosition - UDim2.new(1, 0, 0, 0)
-        else -- right
-            startPosition = originalPosition + UDim2.new(1, 0, 0, 0)
-        end
-        
-        frame.Position = startPosition
-        frame.Visible = true
-        
-        local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-        local tween = Services.TweenService:Create(frame, tweenInfo, {Position = originalPosition})
-        tween:Play()
-    end
-}
-
--- ===========================================
--- GUI CREATION (sama seperti sebelumnya)
--- ===========================================
-
-local function createGui()
-    if playerGui:FindFirstChild("WarpahVipBypassGui") then
-        playerGui:FindFirstChild("WarpahVipBypassGui"):Destroy()
-    end
-    
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "WarpahVipBypassGui"
-    screenGui.Parent = playerGui
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.ResetOnSpawn = false
-    screenGui.DisplayOrder = 999
-    
-    local loadingContainer = Instance.new("Frame")
-    loadingContainer.Name = "LoadingContainer"
-    loadingContainer.Size = UDim2.new(0, 300, 0, 90)
-    loadingContainer.Position = UDim2.new(0.5, -150, 0.5, -45)
-    loadingContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-    loadingContainer.BackgroundTransparency = 0.1
-    loadingContainer.BorderSizePixel = 0
-    loadingContainer.Parent = screenGui
-    
-    local loadingCorner = Instance.new("UICorner")
-    loadingCorner.CornerRadius = UDim.new(0, 12)
-    loadingCorner.Parent = loadingContainer
-    
-    local loadingBorder = Instance.new("UIStroke")
-    loadingBorder.Color = Color3.fromRGB(0, 255, 127)
-    loadingBorder.Thickness = 1
-    loadingBorder.Transparency = 0.7
-    loadingBorder.Parent = loadingContainer
-    
-    local loadingText = Instance.new("TextLabel")
-    loadingText.Name = "LoadingText"
-    loadingText.Size = UDim2.new(1, -60, 1, 0)
-    loadingText.Position = UDim2.new(0, 50, 0, 0)
-    loadingText.BackgroundTransparency = 1
-    loadingText.Text = "Initializing HWID system..."
-    loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    loadingText.TextSize = 14
-    loadingText.Font = Enum.Font.GothamMedium
-    loadingText.TextXAlignment = Enum.TextXAlignment.Left
-    loadingText.Parent = loadingContainer
-    
-    local spinner = Instance.new("ImageLabel")
-    spinner.Size = UDim2.new(0, 24, 0, 24)
-    spinner.Position = UDim2.new(0, 15, 0.5, -12)
-    spinner.BackgroundTransparency = 1
-    spinner.Image = "rbxassetid://17615425140"
-    spinner.Parent = loadingContainer
-    
-    local spinnerCorner = Instance.new("UICorner")
-    spinnerCorner.CornerRadius = UDim.new(0, 4)
-    spinnerCorner.Parent = spinner
-    
-    local spinTween = Services.TweenService:Create(
-        spinner,
-        TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
-        {Rotation = 360}
-    )
-    spinTween:Play()
-    
-    return loadingContainer, loadingText
-end
-
-local function createMainFrame()
-    mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 380, 0, 320)
-    mainFrame.Position = UDim2.new(0.5, -190, 0.5, -160)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-    mainFrame.BorderSizePixel = 0
-    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    mainFrame.Visible = false
-    mainFrame.Parent = screenGui
-    
-    local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 16)
-    mainCorner.Parent = mainFrame
-    
-    local shadowFrame = Instance.new("Frame")
-    shadowFrame.Size = UDim2.new(1, 20, 1, 20)
-    shadowFrame.Position = UDim2.new(0, -10, 0, -10)
-    shadowFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    shadowFrame.BackgroundTransparency = 0.8
-    shadowFrame.BorderSizePixel = 0
-    shadowFrame.ZIndex = -1
-    shadowFrame.Parent = mainFrame
-    
-    local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(0, 20)
-    shadowCorner.Parent = shadowFrame
-    
-    local borderFrame = Instance.new("Frame")
-    borderFrame.Size = UDim2.new(1, 4, 1, 4)
-    borderFrame.Position = UDim2.new(0, -2, 0, -2)
-    borderFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
-    borderFrame.BorderSizePixel = 0
-    borderFrame.ZIndex = -1
-    borderFrame.Parent = mainFrame
-    
-    local borderCorner = Instance.new("UICorner")
-    borderCorner.CornerRadius = UDim.new(0, 18)
-    borderCorner.Parent = borderFrame
-    
-    local glowTween = Services.TweenService:Create(
-        borderFrame,
-        TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-        {BackgroundColor3 = Color3.fromRGB(50, 255, 150)}
-    )
-    glowTween:Play()
-    
-    -- Header
-    local headerFrame = Instance.new("Frame")
-    headerFrame.Size = UDim2.new(1, 0, 0, 80)
-    headerFrame.Position = UDim2.new(0, 0, 0, 0)
-    headerFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
-    headerFrame.BorderSizePixel = 0
-    headerFrame.Parent = mainFrame
-    
-    local headerCorner = Instance.new("UICorner")
-    headerCorner.CornerRadius = UDim.new(0, 16)
-    headerCorner.Parent = headerFrame
-    
-    local headerMask = Instance.new("Frame")
-    headerMask.Size = UDim2.new(1, 0, 0, 16)
-    headerMask.Position = UDim2.new(0, 0, 1, -16)
-    headerMask.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
-    headerMask.BorderSizePixel = 0
-    headerMask.Parent = headerFrame
-    
-    local logo = Instance.new("ImageLabel")
-    logo.Size = UDim2.new(0, 45, 0, 45)
-    logo.Position = UDim2.new(0, 20, 0.5, -22.5)
-    logo.BackgroundTransparency = 1
-    logo.Image = "rbxassetid://17615425140"
-    logo.Parent = headerFrame
-    
-    local logoCorner = Instance.new("UICorner")
-    logoCorner.CornerRadius = UDim.new(0, 8)
-    logoCorner.Parent = logo
-    
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(0, 250, 0, 25)
-    title.Position = UDim2.new(0, 75, 0, 15)
-    title.BackgroundTransparency = 1
-    title.Text = "WarpahVip HWID System"
-    title.TextColor3 = Color3.fromRGB(0, 255, 127)
-    title.TextSize = 18
-    title.Font = Enum.Font.GothamBold
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = headerFrame
-    
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Size = UDim2.new(0, 250, 0, 20)
-    subtitle.Position = UDim2.new(0, 75, 0, 38)
-    subtitle.BackgroundTransparency = 1
-    subtitle.Text = "Device-Locked Security"
-    subtitle.TextColor3 = Color3.fromRGB(180, 255, 200)
-    subtitle.TextSize = 12
-    subtitle.Font = Enum.Font.Gotham
-    subtitle.TextXAlignment = Enum.TextXAlignment.Left
-    subtitle.Parent = headerFrame
-    
-    -- HWID Info
-    local hwidFrame = Instance.new("Frame")
-    hwidFrame.Size = UDim2.new(1, -40, 0, 30)
-    hwidFrame.Position = UDim2.new(0, 20, 0, 90)
-    hwidFrame.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
-    hwidFrame.BorderSizePixel = 0
-    hwidFrame.Parent = mainFrame
-    
-    local hwidCorner = Instance.new("UICorner")
-    hwidCorner.CornerRadius = UDim.new(0, 8)
-    hwidCorner.Parent = hwidFrame
-    
-    local hwidText = Instance.new("TextLabel")
-    hwidText.Size = UDim2.new(1, -20, 1, 0)
-    hwidText.Position = UDim2.new(0, 10, 0, 0)
-    hwidText.BackgroundTransparency = 1
-    hwidText.Text = "Device ID: " .. generateHWID():sub(1, 12) .. "..."
-    hwidText.TextColor3 = Color3.fromRGB(150, 200, 160)
-    hwidText.TextSize = 10
-    hwidText.Font = Enum.Font.RobotoMono
-    hwidText.TextXAlignment = Enum.TextXAlignment.Left
-    hwidText.Parent = hwidFrame
-    
-    -- Key input
-    local inputLabel = Instance.new("TextLabel")
-    inputLabel.Size = UDim2.new(1, -40, 0, 20)
-    inputLabel.Position = UDim2.new(0, 20, 0, 130)
-    inputLabel.BackgroundTransparency = 1
-    inputLabel.Text = "Access Key (Will bind to this device)"
-    inputLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    inputLabel.TextSize = 14
-    inputLabel.Font = Enum.Font.GothamMedium
-    inputLabel.TextXAlignment = Enum.TextXAlignment.Left
-    inputLabel.Parent = mainFrame
-    
-    local keyInput = Instance.new("TextBox")
-    keyInput.Name = "KeyInput"
-    keyInput.Size = UDim2.new(1, -40, 0, 35)
-    keyInput.Position = UDim2.new(0, 20, 0, 155)
-    keyInput.PlaceholderText = "Enter your access key..."
-    keyInput.Text = ""
-    keyInput.ClearTextOnFocus = false
-    keyInput.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
-    keyInput.BorderColor3 = Color3.fromRGB(50, 100, 70)
-    keyInput.BorderSizePixel = 1
-    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keyInput.PlaceholderColor3 = Color3.fromRGB(120, 150, 130)
-    keyInput.TextSize = 14
-    keyInput.Font = Enum.Font.Gotham
-    keyInput.Parent = mainFrame
-    
-    local inputCorner = Instance.new("UICorner")
-    inputCorner.CornerRadius = UDim.new(0, 8)
-    inputCorner.Parent = keyInput
-    
-    keyInput.Focused:Connect(function()
-        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(0, 255, 127)}):Play()
-    end)
-    
-    keyInput.FocusLost:Connect(function()
-        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(50, 100, 70)}):Play()
-    end)
-    
-    -- Status text
-    local statusText = Instance.new("TextLabel")
-    statusText.Name = "StatusText"
-    statusText.Size = UDim2.new(1, -40, 0, 18)
-    statusText.Position = UDim2.new(0, 20, 0, 195)
-    statusText.BackgroundTransparency = 1
-    statusText.Text = ""
-    statusText.TextColor3 = Color3.fromRGB(180, 255, 200)
-    statusText.TextSize = 12
-    statusText.Font = Enum.Font.Gotham
-    statusText.TextXAlignment = Enum.TextXAlignment.Left
-    statusText.Parent = mainFrame
-    
-    -- Submit button
-    local submitButton = Instance.new("TextButton")
-    submitButton.Name = "SubmitButton"
-    submitButton.Size = UDim2.new(1, -40, 0, 35)
-    submitButton.Position = UDim2.new(0, 20, 0, 215)
-    submitButton.Text = "🔐 Authenticate & Bind Device"
-    submitButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-    submitButton.BorderSizePixel = 0
-    submitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    submitButton.TextSize = 14
-    submitButton.Font = Enum.Font.GothamBold
-    submitButton.Parent = mainFrame
-    
-    local submitCorner = Instance.new("UICorner")
-    submitCorner.CornerRadius = UDim.new(0, 8)
-    submitCorner.Parent = submitButton
-    
-    submitButton.MouseEnter:Connect(function()
-        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 255, 127)}):Play()
-    end)
-    
-    submitButton.MouseLeave:Connect(function()
-        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 200, 100)}):Play()
-    end)
-    
-    -- Links
-    local linksFrame = Instance.new("Frame")
-    linksFrame.Size = UDim2.new(1, -40, 0, 25)
-    linksFrame.Position = UDim2.new(0, 20, 0, 260)
-    linksFrame.BackgroundTransparency = 1
-    linksFrame.Parent = mainFrame
-    
-    local discordButton = Instance.new("TextButton")
-    discordButton.Name = "DiscordButton"
-    discordButton.Size = UDim2.new(0.48, 0, 1, 0)
-    discordButton.Position = UDim2.new(0, 0, 0, 0)
-    discordButton.Text = "🎮 Discord"
-    discordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-    discordButton.BorderSizePixel = 0
-    discordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    discordButton.TextSize = 12
-    discordButton.Font = Enum.Font.GothamMedium
-    discordButton.Parent = linksFrame
-    
-    local discordCorner = Instance.new("UICorner")
-    discordCorner.CornerRadius = UDim.new(0, 6)
-    discordCorner.Parent = discordButton
-    
-    local keyButton = Instance.new("TextButton")
-    keyButton.Name = "KeyButton"
-    keyButton.Size = UDim2.new(0.48, 0, 1, 0)
-    keyButton.Position = UDim2.new(0.52, 0, 0, 0)
-    keyButton.Text = "🔑 Get Key"
-    keyButton.BackgroundColor3 = Color3.fromRGB(0, 180, 90)
-    keyButton.BorderSizePixel = 0
-    keyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keyButton.TextSize = 12
-    keyButton.Font = Enum.Font.GothamMedium
-    keyButton.Parent = linksFrame
-    
-    local keyCorner = Instance.new("UICorner")
-    keyCorner.CornerRadius = UDim.new(0, 6)
-    keyCorner.Parent = keyButton
-    
-    -- Warning text
-    local warningText = Instance.new("TextLabel")
-    warningText.Size = UDim2.new(1, -40, 0, 15)
-    warningText.Position = UDim2.new(0, 20, 0, 290)
-    warningText.BackgroundTransparency = 1
-    warningText.Text = "⚠️ Key will be permanently bound to this device"
-    warningText.TextColor3 = Color3.fromRGB(255, 200, 100)
-    warningText.TextSize = 10
-    warningText.Font = Enum.Font.Gotham
-    warningText.TextXAlignment = Enum.TextXAlignment.Center
-    warningText.Parent = mainFrame
-    
-    return mainFrame, keyInput, statusText, submitButton, discordButton, keyButton
-end
-
--- ===========================================
--- DRAG FUNCTIONALITY
--- ===========================================
-
-local function makeDraggable(frame)
-    local dragging = false
-    local dragInput = nil
-    local dragStart = nil
-    local startPos = nil
-    
-    local function updateInput(input)
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-    
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    
-    Services.UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            updateInput(input)
-        end
-    end)
-end
-
--- ===========================================
--- MAIN EXECUTION
--- ===========================================
-
-local function initialize()
-    local loadingContainer, loadingText = createGui()
-    
-    local loadingMessages = {
-        "Initializing HWID system...",
-        "Checking device compatibility...",
-        "Connecting to secure servers...",
-        "Ready for authentication!"
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a0a0a 50%, #0a0a0a 100%);
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    
-    for i, message in ipairs(loadingMessages) do
-        loadingText.Text = message
-        task.wait(0.8)
-    end
-    
-    local frame, keyInput, statusText, submitButton, discordButton, keyButton = createMainFrame()
-    makeDraggable(frame)
-    
-    local fadeOutTween = Services.TweenService:Create(
-        loadingContainer,
-        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {BackgroundTransparency = 1}
-    )
-    
-    local fadeOutTextTween = Services.TweenService:Create(
-        loadingText,
-        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {TextTransparency = 1}
-    )
-    
-    fadeOutTween:Play()
-    fadeOutTextTween:Play()
-    
-    fadeOutTween.Completed:Connect(function()
-        loadingContainer:Destroy()
-        Utils.slideIn(frame, "bottom")
-    end)
-    
-    -- ===========================================
-    -- EVENT HANDLERS
-    -- ===========================================
-    
-    submitButton.MouseButton1Click:Connect(function()
-        local inputKey = Utils.trim(keyInput.Text)
-        
-        if inputKey == "" then
-            statusText.Text = "⚠️ Please enter an access key!"
-            statusText.TextColor3 = Color3.fromRGB(255, 200, 100)
-            Utils.shakeFrame(frame)
-            return
-        end
-        
-        submitButton.Text = "🔄 Authenticating..."
-        submitButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-        
-        validateKeyWithHWID(inputKey, statusText, function(success, key)
-            if success then
-                -- Success animation
-                local successTween = Services.TweenService:Create(
-                    frame,
-                    TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In),
-                    {Size = UDim2.new(0, 0, 0, 0), Rotation = 15}
-                )
-                
-                successTween:Play()
-                successTween.Completed:Connect(function()
-                    screenGui:Destroy()
-                    
-                    -- Load main script
-                    pcall(function()
-                        loadstring(game:HttpGet(Config.MAIN_SCRIPT_URL))()
-                    end)
-                end)
-            else
-                -- Error animation
-                Utils.shakeFrame(frame)
-                submitButton.Text = "🔐 Authenticate & Bind Device"
-                submitButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-            end
-        end)
-    end)
-    
-    -- Link buttons
-    discordButton.MouseButton1Click:Connect(function()
-        if Utils.copyToClipboard(Config.DISCORD_LINK) then
-            statusText.Text = "📋 Discord link copied to clipboard!"
-            statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            statusText.Text = "Discord: " .. Config.DISCORD_LINK
-            statusText.TextColor3 = Color3.fromRGB(180, 255, 200)
-        end
-    end)
-    
-    keyButton.MouseButton1Click:Connect(function()
-        if Utils.copyToClipboard(Config.LOOTLABS_LINK) then
-            statusText.Text = "📋 Key link copied to clipboard!"
-            statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            statusText.Text = "Get Key: " .. Config.LOOTLABS_LINK
-            statusText.TextColor3 = Color3.fromRGB(255, 200, 100)
-        end
-    end)
-    
-    -- Enter key support
-    keyInput.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            submitButton.MouseButton1Click:Fire()
-        end
-    end)
-end
 
--- Error handling wrapper
-pcall(initialize)
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 20% 80%, rgba(255, 0, 0, 0.1) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 20%, rgba(255, 0, 0, 0.05) 0%, transparent 50%);
+      animation: pulse 4s ease-in-out infinite alternate;
+      z-index: -1;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    header {
+      background: linear-gradient(135deg, #ff0000 0%, #cc0000 50%, #990000 100%);
+      padding: 24px 0;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(255, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(45deg, #ff4444, #ff0000);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      0% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.6); }
+      100% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.8); }
+    }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .nav-button {
+      position: relative;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+
+    .nav-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .nav-button:hover::before {
+      left: 100%;
+    }
+
+    .nav-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255, 0, 0, 0.3);
+      border-color: rgba(255, 0, 0, 0.5);
+    }
+
+    .nav-button.active {
+      background: linear-gradient(135deg, #ff0000, #cc0000);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 32px auto;
+      padding: 0 20px;
+    }
+
+    .main-panel {
+      background: rgba(26, 26, 26, 0.95);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      display: none;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .main-panel.active {
+      display: block;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid rgba(255, 0, 0, 0.2);
+    }
+
+    .panel-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ff4444;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .input-field {
+      padding: 14px 18px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      color: white;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      min-width: 200px;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: #ff0000;
+      box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .btn {
+      padding: 14px 28px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ff0000, #cc0000);
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 0, 0, 0.4);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #444, #666);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #00aa00, #008800);
+      color: white;
+    }
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 170, 0, 0.3);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ff4444, #cc0000);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 68, 68, 0.3);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #ff8800, #cc6600);
+      color: white;
+    }
+
+    .btn-warning:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 136, 0, 0.3);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      margin-top: 24px;
+    }
+
+    .data-table thead {
+      background: linear-gradient(135deg, #333, #444);
+    }
+
+    .data-table th {
+      padding: 18px 16px;
+      text-align: left;
+      font-weight: 700;
+      color: #ff4444;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .data-table tbody tr {
+      background: rgba(30, 30, 30, 0.8);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .data-table tbody tr:hover {
+      background: rgba(50, 50, 50, 0.8);
+      transform: scale(1.01);
+    }
+
+    .data-table td {
+      padding: 16px;
+      color: #ddd;
+      font-family: 'Courier New', monospace;
+    }
+
+    .status-unused {
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .status-used {
+      color: #f87171;
+      font-weight: 600;
+    }
+
+    .status-bound {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .hwid-cell {
+      font-size: 12px;
+      color: #888;
+      max-width: 120px;
+      word-break: break-all;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: rgba(30, 30, 30, 0.8);
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .stat-number {
+      font-size: 32px;
+      font-weight: 700;
+      color: #ff4444;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      color: #999;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .code-output {
+      background: linear-gradient(135deg, #111, #222);
+      color: #00ff88;
+      padding: 24px;
+      border-radius: 12px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      font-family: 'Courier New', monospace;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #333;
+      border-radius: 50%;
+      border-top-color: #ff0000;
+      animation: spin 1s ease-in-out infinite;
+      margin-left: 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #666;
+      font-size: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 40px;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification.success {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .notification.error {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .api-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .api-status.connected {
+      color: #10b981;
+    }
+
+    .api-status.disconnected {
+      color: #ef4444;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .hwid-info {
+      background: rgba(0, 255, 100, 0.1);
+      border: 1px solid rgba(0, 255, 100, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 16px;
+      }
+      
+      .main-panel {
+        padding: 20px;
+        border-radius: 16px;
+      }
+      
+      .input-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .input-field {
+        min-width: unset;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      <div class="logo">🔐</div>
+      <span>WhoAmI Admin Panel - HWID System</span>
+    </h1>
+    <nav>
+      <button class="nav-button active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+      <button class="nav-button" onclick="switchTab('keys')">🔑 Keys & HWID</button>
+      <button class="nav-button" onclick="switchTab('logs')">📜 Usage Logs</button>
+      <button class="nav-button" onclick="switchTab('generator')">➕ Generate</button>
+    </nav>
+  </header>
+
+  <div class="container">
+    <!-- Dashboard Panel -->
+    <div id="dashboard" class="main-panel active">
+      <div class="panel-header">
+        <h2 class="panel-title">📊 HWID System Dashboard</h2>
+        <div class="api-status" id="apiStatus">
+          <div class="status-dot"></div>
+          <span>API Status</span>
+        </div>
+      </div>
