@@ -538,3 +538,417 @@
           <span>API Status</span>
         </div>
       </div>
+
+      <div class="hwid-info">
+        <strong>🔒 HWID System Active:</strong> 1 Key = 1 Device permanently bound. Keys cannot be shared between devices.
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="totalKeys">-</div>
+          <div class="stat-label">Total Keys</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="unusedKeys">-</div>
+          <div class="stat-label">Unbound Keys</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="boundKeys">-</div>
+          <div class="stat-label">Device-Bound Keys</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="uniqueDevices">-</div>
+          <div class="stat-label">Unique Devices</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="todayLogs">-</div>
+          <div class="stat-label">Today's Usage</div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <input type="password" class="input-field" id="dashPassword" placeholder="🔒 Admin Password" />
+        <button class="btn btn-primary" onclick="loadDashboard()">📈 Load HWID Dashboard</button>
+      </div>
+    </div>
+
+    <!-- Keys Panel -->
+    <div id="keys" class="main-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">🔑 Key & HWID Management</h2>
+      </div>
+
+      <div class="hwid-info">
+        <strong>Device Binding Status:</strong> Each key can only be used on one device. HWID binding is permanent unless reset by admin.
+      </div>
+
+      <div class="input-group">
+        <input type="password" class="input-field" id="password" placeholder="🔒 Admin Password" />
+        <button class="btn btn-primary" onclick="fetchKeys()">🔍 View All Keys & HWIDs</button>
+      </div>
+
+      <table class="data-table" id="keyTable">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>User</th>
+            <th>Hardware ID</th>
+            <th>First Used</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Logs Panel -->
+    <div id="logs" class="main-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">📜 HWID Activity Logs</h2>
+      </div>
+
+      <div class="input-group">
+        <input type="password" class="input-field" id="logPassword" placeholder="🔒 Admin Password" />
+        <button class="btn btn-primary" onclick="fetchLogs()">📄 Load Activity Logs</button>
+      </div>
+
+      <table class="data-table" id="logTable">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>User</th>
+            <th>HWID (partial)</th>
+            <th>Timestamp</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Generator Panel -->
+    <div id="generator" class="main-panel">
+      <div class="panel-header">
+        <h2 class="panel-title">➕ Key Generator</h2>
+      </div>
+
+      <div class="hwid-info">
+        <strong>Note:</strong> Generated keys will automatically bind to the first device that uses them.
+      </div>
+
+      <div class="input-group">
+        <input type="password" class="input-field" id="genPassword" placeholder="🔒 Admin Password" />
+        <input type="number" class="input-field" id="genAmount" placeholder="Amount (1-20)" min="1" max="20" value="1" />
+        <button class="btn btn-primary" onclick="generateKeys()">⚙️ Generate Keys</button>
+        <button class="btn btn-success" id="copyBtn" onclick="copyKeys()">📋 Copy Keys</button>
+      </div>
+
+      <pre class="code-output" id="generatedKeys">Generated keys will appear here...</pre>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2025 WhoAmI HWID Security System - Admin Access Only
+  </footer>
+
+  <script>
+    const API_BASE = 'https://whoami-key-api.vercel.app/api';
+    let currentData = { keys: [], logs: [] };
+
+    function showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => notification.classList.add('show'), 100);
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => document.body.removeChild(notification), 300);
+      }, 3000);
+    }
+
+    function updateApiStatus(connected) {
+      const status = document.getElementById('apiStatus');
+      status.className = `api-status ${connected ? 'connected' : 'disconnected'}`;
+      status.querySelector('span').textContent = connected ? 'API Connected' : 'API Disconnected';
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.main-panel').forEach(panel => panel.classList.remove('active'));
+      
+      document.getElementById(tab).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    async function loadDashboard() {
+      const pwd = document.getElementById('dashPassword').value;
+      
+      if (!pwd) {
+        showNotification('Please enter admin password', 'error');
+        return;
+      }
+      
+      try {
+        updateApiStatus(false);
+        const response = await fetch(`${API_BASE}/admin?password=${encodeURIComponent(pwd)}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          showNotification(data.error, 'error');
+          return;
+        }
+
+        updateApiStatus(true);
+        currentData.keys = data.keys || [];
+
+        // Fetch logs for dashboard stats
+        try {
+          const logsResponse = await fetch(`${API_BASE}/logs?password=${encodeURIComponent(pwd)}`);
+          const logsData = await logsResponse.json();
+          currentData.logs = logsData.logs || [];
+        } catch (e) {
+          currentData.logs = [];
+        }
+        
+        // Calculate HWID-specific stats
+        const totalKeys = currentData.keys.length;
+        const unboundKeys = currentData.keys.filter(k => !k.hwid).length;
+        const boundKeys = currentData.keys.filter(k => k.hwid).length;
+        const uniqueDevices = new Set(currentData.keys.filter(k => k.hwid).map(k => k.hwid)).size;
+        const todayLogs = currentData.logs.filter(log => {
+          const today = new Date();
+          const logDate = new Date(log.timestamp * 1000);
+          return logDate.toDateString() === today.toDateString();
+        }).length;
+        
+        document.getElementById('totalKeys').textContent = totalKeys;
+        document.getElementById('unusedKeys').textContent = unboundKeys;
+        document.getElementById('boundKeys').textContent = boundKeys;
+        document.getElementById('uniqueDevices').textContent = uniqueDevices;
+        document.getElementById('todayLogs').textContent = todayLogs;
+        
+        showNotification('HWID Dashboard loaded successfully!');
+      } catch (error) {
+        console.error('Dashboard error:', error);
+        updateApiStatus(false);
+        showNotification('Failed to connect to API', 'error');
+      }
+    }
+
+    async function fetchKeys() {
+      const pwd = document.getElementById('password').value;
+      
+      if (!pwd) {
+        showNotification('Please enter admin password', 'error');
+        return;
+      }
+      
+      const tbody = document.querySelector("#keyTable tbody");
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading keys...</td></tr>';
+
+      try {
+        const response = await fetch(`${API_BASE}/admin?password=${encodeURIComponent(pwd)}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          showNotification(data.error, 'error');
+          tbody.innerHTML = '';
+          return;
+        }
+
+        currentData.keys = data.keys || [];
+        tbody.innerHTML = "";
+        
+        currentData.keys.forEach(k => {
+          const tr = document.createElement("tr");
+          const hasHWID = k.hwid && k.hwid.length > 0;
+          const status = hasHWID ? 'Device Bound' : 'Unbound';
+          const statusClass = hasHWID ? 'status-bound' : 'status-unused';
+          const firstUsed = k.first_used ? new Date(k.first_used * 1000).toLocaleString() : '-';
+          const hwidDisplay = hasHWID ? k.hwid.substring(0, 8) + '...' : 'Not bound';
+          
+          tr.innerHTML = `
+            <td>${k.key}</td>
+            <td>${k.user || '-'}</td>
+            <td class="hwid-cell">${hwidDisplay}</td>
+            <td>${firstUsed}</td>
+            <td><span class="${statusClass}">${status}</span></td>
+            <td>
+              <button class="btn btn-danger" onclick="resetKey('${k.key}')">🔄 Reset Key</button>
+              ${hasHWID ? `<button class="btn btn-warning" onclick="resetHWID('${k.key}')">🔓 Unbind HWID</button>` : ''}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+        
+        showNotification('Keys and HWID data loaded successfully!');
+      } catch (error) {
+        console.error('Fetch keys error:', error);
+        showNotification('Failed to fetch keys', 'error');
+        tbody.innerHTML = '';
+      }
+    }
+
+    async function resetKey(key) {
+      if (!confirm(`Reset entire key: ${key}?\nThis will remove user, HWID binding, and usage data.`)) return;
+      
+      const pwd = document.getElementById('password').value || document.getElementById('genPassword').value;
+      
+      try {
+        const response = await fetch(`${API_BASE}/resetKey?key=${encodeURIComponent(key)}&password=${encodeURIComponent(pwd)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          showNotification(data.message);
+          fetchKeys();
+        } else {
+          showNotification(data.error || 'Failed to reset key', 'error');
+        }
+      } catch (error) {
+        console.error('Reset key error:', error);
+        showNotification('Failed to reset key', 'error');
+      }
+    }
+
+    async function resetHWID(key) {
+      if (!confirm(`Unbind HWID for key: ${key}?\nKey can be used on a different device after this.`)) return;
+      
+      const pwd = document.getElementById('password').value || document.getElementById('genPassword').value;
+      
+      try {
+        // For now, use the same resetKey endpoint - in production you'd have a separate resetHWID endpoint
+        const response = await fetch(`${API_BASE}/resetKey?key=${encodeURIComponent(key)}&password=${encodeURIComponent(pwd)}&hwid_only=true`);
+        const data = await response.json();
+        
+        if (data.success) {
+          showNotification('HWID binding removed successfully');
+          fetchKeys();
+        } else {
+          showNotification(data.error || 'Failed to reset HWID', 'error');
+        }
+      } catch (error) {
+        console.error('Reset HWID error:', error);
+        showNotification('Failed to reset HWID', 'error');
+      }
+    }
+
+    async function fetchLogs() {
+      const pwd = document.getElementById('logPassword').value;
+      
+      if (!pwd) {
+        showNotification('Please enter admin password', 'error');
+        return;
+      }
+      
+      const tbody = document.querySelector("#logTable tbody");
+      tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading logs...</td></tr>';
+      
+      try {
+        const response = await fetch(`${API_BASE}/logs?password=${encodeURIComponent(pwd)}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          showNotification(data.error, 'error');
+          tbody.innerHTML = '';
+          return;
+        }
+
+        currentData.logs = data.logs || [];
+        tbody.innerHTML = "";
+        
+        currentData.logs.forEach(log => {
+          const tr = document.createElement("tr");
+          const hwidDisplay = log.hwid ? log.hwid.substring(0, 8) + '...' : 'N/A';
+          
+          tr.innerHTML = `
+            <td>${log.key}</td>
+            <td>${log.user}</td>
+            <td class="hwid-cell">${hwidDisplay}</td>
+            <td>${new Date(log.timestamp * 1000).toLocaleString()}</td>
+            <td><span class="status-bound">success</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+        
+        showNotification('HWID logs loaded successfully!');
+      } catch (error) {
+        console.error('Fetch logs error:', error);
+        showNotification('Failed to fetch logs', 'error');
+        tbody.innerHTML = '';
+      }
+    }
+
+    async function generateKeys() {
+      const pwd = document.getElementById('genPassword').value;
+      const amount = parseInt(document.getElementById('genAmount').value) || 1;
+      const output = document.getElementById("generatedKeys");
+
+      if (!pwd) {
+        showNotification('Please enter admin password', 'error');
+        return;
+      }
+
+      if (amount < 1 || amount > 20) {
+        showNotification('Amount must be between 1 and 20', 'error');
+        return;
+      }
+
+      output.textContent = "🔄 Generating HWID-ready keys...";
+
+      try {
+        const response = await fetch(`${API_BASE}/generateKeys`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd, amount: amount })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          output.textContent = "Generated keys will appear here...";
+          showNotification(data.error, 'error');
+          return;
+        }
+
+        output.textContent = data.keys.join("\n") + "\n\n// Keys will bind to first device that uses them";
+        showNotification(`Generated ${amount} HWID-ready keys successfully!`);
+        
+        // Update keys table if visible
+        const keysPanel = document.getElementById('keys');
+        if (keysPanel.classList.contains('active') && currentData.keys.length > 0) {
+          fetchKeys();
+        }
+      } catch (error) {
+        console.error('Generate keys error:', error);
+        output.textContent = "Generated keys will appear here...";
+        showNotification('Failed to generate keys', 'error');
+      }
+    }
+
+    function copyKeys() {
+      const text = document.getElementById("generatedKeys").textContent;
+      if (!text.trim() || text.includes('Generated keys will appear') || text.includes('Generating')) {
+        showNotification('No keys to copy', 'error');
+        return;
+      }
+
+      navigator.clipboard.writeText(text)
+        .then(() => showNotification('Keys copied to clipboard!'))
+        .catch(() => showNotification('Failed to copy keys', 'error'));
+    }
+
+    // Auto-load dashboard on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(() => {
+        const dashPasswordField = document.getElementById('dashPassword');
+        if (dashPasswordField) {
+          dashPasswordField.focus();
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>
