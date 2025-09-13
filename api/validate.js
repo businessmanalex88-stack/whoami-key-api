@@ -1,30 +1,29 @@
 import { kv } from "@vercel/kv";
-import crypto from "crypto";
 
 export default async function handler(req, res) {
-  const { key, hwid } = req.body;
-  if (!key || !hwid) return res.status(400).json({ ok: false, msg: "Missing params" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, msg: "Method not allowed" });
+  }
 
-  const data = await kv.get(`key:${key}`);
-  if (!data) return res.json({ ok: false, msg: "Invalid key" });
+  const { key, userId } = req.body;
 
-  const parsed = JSON.parse(data);
-  const hwidHash = crypto.createHash("sha256").update(hwid).digest("hex");
+  if (!key) return res.status(400).json({ ok: false, msg: "Key required" });
 
-  if (!parsed.used) {
-    parsed.used = true;
-    parsed.hwid = hwidHash;
-    parsed.activatedAt = Date.now();
-    parsed.lastUsed = Date.now();
-    await kv.set(`key:${key}`, JSON.stringify(parsed));
+  const data = await kv.hgetall(`key:${key}`);
+  if (!data || !data.active) {
+    return res.status(403).json({ ok: false, msg: "Invalid key" });
+  }
+
+  // kalau key pertama kali dipakai → tandai used
+  if (!data.used) {
+    await kv.hset(`key:${key}`, { used: true, userId, activatedAt: Date.now() });
     return res.json({ ok: true, msg: "Key activated" });
   }
 
-  if (parsed.hwid === hwidHash) {
-    parsed.lastUsed = Date.now();
-    await kv.set(`key:${key}`, JSON.stringify(parsed));
-    return res.json({ ok: true, msg: "Valid" });
+  // kalau sudah pernah dipakai → hanya user yg sama yg bisa pakai lagi
+  if (data.userId && data.userId != userId) {
+    return res.status(403).json({ ok: false, msg: "Key already bound to another user" });
   }
 
-  return res.json({ ok: false, msg: "Key bound to another device" });
+  return res.json({ ok: true, msg: "Key valid" });
 }
