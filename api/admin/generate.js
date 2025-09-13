@@ -1,20 +1,10 @@
-import { kv } from "@vercel/kv";
+export default function handler(req, res) {
+  const { password } = req.query;
 
-export default async function handler(req, res) {
-  if (req.query.password !== process.env.ADMIN_PASSWORD) {
+  if (password !== process.env.WarpahVVIP) {
     return res.status(403).json({ ok: false, msg: "Unauthorized" });
   }
 
-  // generate key unik
-  const newKey = Math.random().toString(36).substring(2, 10).toUpperCase();
-
-  // simpan ke database
-  await kv.hset(`key:${newKey}`, {
-    active: true,
-    createdAt: Date.now(),
-    used: false
-  });
-  await kv.lpush("keys_list", newKey);
-
-  return res.json({ ok: true, key: newKey });
+  const newKey = Math.random().toString(36).substring(2, 12);
+  return res.status(200).json({ ok: true, key: newKey });
 }
